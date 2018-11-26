@@ -1,9 +1,13 @@
 # Logs
 logs
 *.log
+log.*
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# Configuration file (keys, secret, and deployment specific data)
+config.json
 
 # Runtime data
 pids

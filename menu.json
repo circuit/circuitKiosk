@@ -1,0 +1,26 @@
+{
+    "help": {
+        "description": "Displays the available commands",
+        "command": "showHelp"
+    },
+    "start": {
+        "description": "Joins or initiates a conference call on demand",
+        "command": "start"
+    },
+    "stop": {
+        "description": "Quits the conference call",
+        "command": "stop"
+    },
+    "status": {
+        "description": "Displays the status of the device",
+        "command": "status"
+    },
+    "version": {
+        "description": "Displays the device's software version",
+        "command": "version"
+    },
+    "logs": {
+        "description": "Retrieves and attaches the logfile to the conversation",
+        "command": "getLogs"
+    }
+}

@@ -1,0 +1,12 @@
+{
+    "bot": {
+        "client_id": "your-client-id",
+        "client_secret": "your-client-secret",
+        "domain": "circuitsandbox.net",
+        "first_name": "bot-first-name",
+        "last_name": "bot-last-name"
+    },
+    "botOwnerEmail": "bot-administrator-circuit-email",
+    "convId": "conversation-with-bot-admin-id",
+    "logFile": "relative-or-absolute-path-and-filename"
+}
