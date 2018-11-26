@@ -1,0 +1,19 @@
+{
+  "name": "circuitkiosk",
+  "version": "1.0.0",
+  "description": "Office Reception Kiosk for Circuit",
+  "main": "index.js",
+  "scripts": {
+    "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wdmartins/circuitKiosk.git"
+  },
+  "author": "Walter Martins",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/wdmartins/circuitKiosk/issues"
+  },
+  "homepage": "https://github.com/wdmartins/circuitKiosk#readme"
+}
