@@ -532,6 +532,7 @@ let Bot = function(client) {
     this.callUser = function(userIndex) {
         let user = uiData.users[userIndex];
         logger.info(`[MONAS] Calling user ${user.firstName} ${user.lastName}`);
+        client.makeCall(user.userId, {audio: true, video: true}, true);
     }
 
     /*
