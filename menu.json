@@ -22,5 +22,9 @@
     "logs": {
         "description": "Retrieves and attaches the logfile to the conversation",
         "command": "getLogs"
+    },
+    "search": {
+        "description": "Test search users function",
+        "command": "search"
     }
 }

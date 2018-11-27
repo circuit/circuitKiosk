@@ -6,9 +6,22 @@ const {states, BotState} = require('./botState');
 const logger = require('electron-log');
 const {ipcRenderer} = require('electron');
 const fs = require('fs');
+const Circuit = require('circuit-sdk/circuit.js');
+
+// UI States
+const SPLASH = 'SPLASH';
+const USERS = 'USERS';
+const CALL = 'CALL';
 
 // let videoElement;
 let audioElement;
+
+let uiData = {
+    status: 'SPLASH',
+    users: [],
+    searchId: null,
+    searchString: ''
+};
 
 process.argv.forEach(function(argv, index) {
     logger.info(`argv[${index}]: ${argv}`);
@@ -34,6 +47,7 @@ let Bot = function(client) {
         return new Promise((resolve) => {
             let retry;
             self.addEventListeners(client);
+            self.updateUI();
             let logon = async function() {
                 try {
                     user = await client.logon();
@@ -169,6 +183,9 @@ let Bot = function(client) {
                 break;
             case 'callIncoming':
                 self.processCallIncomingEvent(evt);
+                break;
+            case 'basicSearchResults':
+                self.processSearchResults(evt.data).then(self.updateUI);
                 break;
             default:
                 logger.info(`[MONAS]: unhandled event ${evt.type}`);
@@ -332,6 +349,9 @@ let Bot = function(client) {
                     case 'getLogs':
                         self.getLogFile(convId, itemId);
                         break;
+                    case 'search':
+                        self.searchUsers(convId, itemId, params);
+                        break;
                     default:
                         logger.info(`[MONAS] I do not understand [${withoutName}]`);
                         client.addTextItem(convId, self.buildConversationItem(itemId, null,
@@ -470,10 +490,82 @@ let Bot = function(client) {
             await client.unmute(call.callId);
         }
     };
+
+    /*
+     * Search Users
+     */
+    this.searchUsers = async function(convId, itemId, searchString) {
+        if (!searchString || searchString.length !== 1) {
+            logger.error(`[MONAS] Invalid Syntax`);
+            self.sendErrorItem(convId, itemId, 'Invalid syntax. Sintax: search searchString');
+            return;
+        }
+        uiData.searchId = client.startUserSearch(searchString[0]);
+    };
+
+    /*
+     * Process Users Search Results
+     */
+    this.processSearchResults = async function(data) {
+        return new Promise(function(resolve) {
+            uiData.searchId = null;
+            if (!data || !data.users) {
+                logger.info(`[MONAS] Nothing to do. No search results`);
+                return;
+            }
+            uiData.users = [];
+            data.users.forEach(async function(userId, index) {
+                client.getUserById(userId).then((user) => {
+                    uiData.users.push(user);
+                    logger.info(`[MONAS] User: ${user.firstName} ${user.lastName}`);
+                    if (data.users.length === uiData.users.length) {
+                        resolve(uiData.users);
+                    }
+                });
+            });
+        });
+    };
+
+    /*
+     * Calls individual user
+     */
+    this.callUser = function(userIndex) {
+        let user = uiData.users[userIndex];
+        logger.info(`[MONAS] Calling user ${user.firstName} ${user.lastName}`);
+    }
+
+    /*
+     * Update User Interface
+     */
+    this.updateUI = function() {
+        const MAX_USERS = 4;
+        uiData.users = uiData.users || [];
+        uiData.users.forEach(function (user, index) {
+            if (index < MAX_USERS) {
+                let userElement = document.querySelector(`#user_${index}`);
+                userElement.style.display = 'inline-block';
+                let element = document.querySelector(`#user_name_${index}`);
+                element.innerHTML = `${user.firstName} ${user.lastName}`;
+                let image = document.querySelector(`#user_image_${index}`);
+                image.src = user.avatar;
+
+            }
+        });
+        if (uiData.users.length < MAX_USERS) {
+            for(let i = uiData.users.length; i < MAX_USERS; i++) {
+                let userElement = document.querySelector(`#user_${i}`);
+                userElement.style.display = 'none';
+                //document.querySelector(`#user_${i}`).style.display = 'none';
+            }            
+        }
+    };
+
 };
 Circuit.logger.setLevel(Circuit.Enums.LogLevel.Debug);
 let bot = new Bot(new Circuit.Client(config.bot));
 bot.logonBot()
     .then(bot.updateUserData)
-    .then(bot.sayHi)
+    //.then(bot.sayHi)
     .catch(bot.terminate);
+
+let callUser = bot.callUser;

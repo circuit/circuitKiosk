@@ -2,19 +2,46 @@
 <html>
   <head>
     <meta charset="UTF-8">
-    <title>circuit-monas-bot</title>
+    <link rel="stylesheet" href="assets/css/common.css">
+    <title>Circuit Reception Kiosk</title>
   </head>
   <body>
-    <h1>circuit-monas-bot</h1>
-    <p>This page is only shown when starting the app in debug mode.</p>
-    <audio id="remoteAudio" autoplay></audio>
-    <video id="remoteVideo" width="200px" autoplay></video>
-
-    <!-- Include the JS SDK since its used in the renderer (not the node.js SDK)
-         By including it inline rather than with require, debugging is easier -->
-    <script>module.exports_ = module.exports;delete module.exports;</script>
-    <script type="text/javascript" src="https://unpkg.com/circuit-sdk@1.2.3700/circuit.js"></script>
-    <script>module.exports = module.exports_;delete module.exports_;</script>
-    <script type="text/javascript" src="./renderer.js"></script>
+    <div class="screen">
+      <div class="title">Wellcome to ABC Enterprises</div>
+      <audio id="remoteAudio" autoplay></audio>
+      <div class="main-content">
+        <video id="remoteVideo" class="remote-video" autoplay></video>
+        <ul id="userList" class="users-list">
+          <li class="user-block" onclick="callUser(0)" id="user_0">
+            <button class="user-data">
+              <img class="user-image" id="user_image_0"></img>
+              <div class="user-name" id="user_name_0"></div>
+            </button>
+          </li>
+          <li class="user-block" onclick="callUser(1)" id="user_1">
+            <button class="user-data">
+              <img class="user-image" id="user_image_1"></img>
+              <div class="user-name" id="user_name_1"></div>
+            </button>
+          </li>
+          <li class="user-block" onclick="callUser(2)" id="user_2">
+            <button class="user-data">
+              <img class="user-image" id="user_image_2"></img>
+              <div class="user-name" id="user_name_2"></div>
+            </button>
+          </li>
+          <li class="user-block" onclick="callUser(3)" id="user_3">
+            <button class="user-data">
+              <img class="user-image" id="user_image_3"></img>
+              <div class="user-name" id="user_name_3"></div>
+            </button>
+          </li>
+        </ul>
+      </div>
+      <footer>
+        <h2>Circuit</h2>
+      </footer>
+    </div>
+  <script type="text/javascript" src="./renderer.js"></script>
   </body>
 </html>

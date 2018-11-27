@@ -20,7 +20,7 @@
   "homepage": "https://github.com/wdmartins/circuitKiosk#readme",
   "dependencies": {
     "bunyan": "^1.5.1",
-    "circuit-sdk": "^1.2.2400",
+    "circuit-sdk": "^1.2.4700",
     "electron": "^3.0.8",
     "electron-log": "^2.2.14",
     "file-api": "^0.10.4",

@@ -27,9 +27,7 @@ function createWindow() {
     logger.info(`[ELECTRON] Create Window`);
     // Create the browser window.
     let win = new BrowserWindow({
-        width: 1200,
-        height: 900,
-        show: !!debug,
+        kiosk: !debug,
     });
 
     // and load the index.html of the app.
