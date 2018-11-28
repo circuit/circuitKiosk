@@ -1,19 +1,25 @@
 .screen {
-    background-color:#2a3136; 
     color:whitesmoke; 
-    height:-webkit-fill-available;
+}
+.header {
+    background-color: darkslategray;
+    text-align: center;
 }
 .title {
-    align-content: center;
-    font-size: 36px;
+    font-size: 24px;
     font-family: Arial, Helvetica, sans-serif;
-    padding: 20px;
+    padding: 5px;
 }
 .main-content {
-    height:300px;
+    height:max-content;
+}
+.remote-video-section {
+    display: none;
 }
 .remote-video {
     height:300px;
+}
+.search-result-section {
     display: none;
 }
 .user-button {
@@ -44,4 +50,20 @@
     max-height: 40px;
     border-radius: 40px;
     margin-right: 10px; 
+}
+.logo-section {
+    height:fit-content;
+}
+.footer {
+    display: flex;
+    flex-direction: row;
+    background-color: steelblue;
+    font-size: 14px;
+}
+.date-time-temp {
+    display: flex;
+    width: 25%;
+}
+.logo {
+    max-height: 80%;
 }
