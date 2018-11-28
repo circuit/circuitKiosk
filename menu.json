@@ -25,6 +25,12 @@
     },
     "search": {
         "description": "Test search users function",
-        "command": "search"
+        "command": "search",
+        "test": true
+    },
+    "switch": {
+        "description": "Switch UI Views",
+        "command": "switchView",
+        "test": true
     }
 }

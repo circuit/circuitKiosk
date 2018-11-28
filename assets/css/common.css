@@ -65,5 +65,19 @@
     width: 25%;
 }
 .logo {
+    width: 100%;
     max-height: 80%;
+}
+.keyboard {
+    display: flex;
+    flex-direction: column;
+}
+.keys-line {
+    display: flex;
+    flex-direction: row;
+}
+.keys {
+    border: 1px;
+    background-color: transparent;
+    color: black;
 }

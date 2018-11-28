@@ -28,6 +28,7 @@ function createWindow() {
     // Create the browser window.
     let win = new BrowserWindow({
         kiosk: !debug,
+        height: 480
     });
 
     // and load the index.html of the app.

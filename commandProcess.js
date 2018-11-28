@@ -22,13 +22,13 @@ let CommandProcessor = function() {
         cb(subMenu.command, commArray);
     };
 
-    this.buildHelp = function() {
+    this.buildHelp = function(test) {
         return new Promise((resolve, reject) => {
             let help = '';
             let baseCommand = '';
             JSON.stringify(menu, function(key, value) {
-                if (key && key != 'command' && key != 'description' && key != 'submenu' && key != 'end') {
-                    if (!value.submenu) {
+                if (key && key != 'command' && key != 'description' && key != 'submenu' && key != 'end' && key != 'test') {
+                    if (!value.submenu && (!value.test || test)) {
                         help += `<b>${baseCommand + ' ' + key}</b>: ${value.description} </br>`;
                     } else {
                         baseCommand += key && ` ${key}`;

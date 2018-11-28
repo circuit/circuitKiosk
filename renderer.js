@@ -13,8 +13,11 @@ const SPLASH = 'SPLASH';
 const USERS = 'USERS';
 const CALL = 'CALL';
 
+// Max Users that can be display on the screen
+const MAX_USERS = 4;
+
 // let videoElement;
-let audioElement;
+// let audioElement;
 
 let uiData = {
     status: 'SPLASH',
@@ -34,6 +37,7 @@ let Bot = function(client) {
     let currentCall;
     let user;
     let relaunch;
+    let uiElements = {};
 
     ipcRenderer.on('relaunch', () => {
         logger.info('[MONAS]: Received relaunch');
@@ -47,6 +51,7 @@ let Bot = function(client) {
         return new Promise((resolve) => {
             let retry;
             self.addEventListeners(client);
+            self.initUI();
             self.updateUI();
             let logon = async function() {
                 try {
@@ -329,7 +334,7 @@ let Bot = function(client) {
                         self.reportVersion(convId, itemId);
                         break;
                     case 'showHelp':
-                        self.showHelp(convId, itemId);
+                        self.showHelp(convId, itemId, params);
                         break;
                     case 'start':
                         let conv = await client.getConversationById(convId);
@@ -351,6 +356,10 @@ let Bot = function(client) {
                         break;
                     case 'search':
                         self.searchUsers(convId, itemId, params);
+                        break;
+                    case 'switchView':
+                        uiData.status = params[0];
+                        self.updateUI();
                         break;
                     default:
                         logger.info(`[MONAS] I do not understand [${withoutName}]`);
@@ -399,9 +408,9 @@ let Bot = function(client) {
     /*
      * Show bot available commands
      */
-    this.showHelp = function(convId, itemId) {
+    this.showHelp = function(convId, itemId, params) {
         logger.info('[MONAS] Displaying help...');
-        commander.buildHelp().then((help) =>
+        commander.buildHelp(params && params.length && params[0]).then((help) =>
             client.addTextItem(convId, self.buildConversationItem(itemId, 'HELP', help)));
     };
 
@@ -481,9 +490,8 @@ let Bot = function(client) {
             // videoElement.srcObject = mediaStream;
             // videoElement.onloadedmetadata = e => videoElement.play();
 
-            audioElement = document.querySelector('audio');
             let remoteAudioStream = client.getRemoteStreams(call.callId).find((s) => s.getAudioTracks().length > 0);
-            audioElement.srcObject = remoteAudioStream;
+            uiElements.audioSrcObject = remoteAudioStream;
 
             // await client.setAudioVideoStream(call.callId, mediaStream);
             await sleep(2000);
@@ -539,26 +547,69 @@ let Bot = function(client) {
      * Update User Interface
      */
     this.updateUI = function() {
-        const MAX_USERS = 4;
+        switch(uiData.status) {
+            case SPLASH:
+                self.showSplash();
+                break;
+            case USERS:
+                self.showUsers();
+                break;
+            case CALL:
+                self.showCall();
+                break;
+            default:
+                logger.error(`[MONAS] Invalud UI Status: ${uiData.status}`);
+                break;
+        }
+        return;
+    }
+
+    this.showUsers = function () {
+        uiElements.splashLogoStyle.display = 'none';
+        uiElements.userSearchStyle.display = 'inline';
+        uiElements.callScreenStyle.display = 'none';
         uiData.users = uiData.users || [];
         uiData.users.forEach(function (user, index) {
             if (index < MAX_USERS) {
-                let userElement = document.querySelector(`#user_${index}`);
-                userElement.style.display = 'inline-block';
-                let element = document.querySelector(`#user_name_${index}`);
-                element.innerHTML = `${user.firstName} ${user.lastName}`;
-                let image = document.querySelector(`#user_image_${index}`);
-                image.src = user.avatar;
-
+                uiElements.usersUI[index].display = 'inline-block';
+                uiElements.usersUI[index].text = `${user.firstName} ${user.lastName}`;
+                uiElements.usersUI[index].avatar = user.avatar;
             }
         });
         if (uiData.users.length < MAX_USERS) {
             for(let i = uiData.users.length; i < MAX_USERS; i++) {
-                let userElement = document.querySelector(`#user_${i}`);
-                userElement.style.display = 'none';
-                //document.querySelector(`#user_${i}`).style.display = 'none';
+                uiElements.userUI[i].display = 'none';
             }            
         }
+    };
+
+    this.showSplash = function () {
+        uiElements.splashLogoStyle.display = 'inline';
+        uiElements.userSearchStyle.display = 'none';
+        uiElements.callScreenStyle.display = 'none';
+    };
+
+    this.showCall = function () {
+        uiElements.splashLogoStyle.display = 'none';
+        uiElements.userSearchStyle.display = 'none';
+        uiElements.callScreenStyle.display = 'inline';
+    };
+
+    this.initUI = function () {
+        uiElements.splashLogoStyle = document.querySelector('#splash_logo').style;
+        uiElements.userSearchStyle = document.querySelector('#users_section').style;
+        uiElements.callScreenStyle = document.querySelector('#call_screen').style;
+        uiElements.usersUI = [];
+        for (let i = 0; i < MAX_USERS; i++) {
+            let uiUser = {
+                display: document.querySelector(`#user_${i}`).style.dislpay,
+                text: document.querySelector(`#user_name_${i}`).innerHTML,
+                avatar: document.querySelector(`#user_image_${i}`).src
+            }
+            uiElements.usersUI.push(uiUser);
+        }
+        uiElements.videoSrcObject = document.querySelector('video').srcObject;
+        uiElements.audioSrcObject = document.querySelector('audio').srcObject;
     };
 
 };
@@ -569,4 +620,5 @@ bot.logonBot()
     //.then(bot.sayHi)
     .catch(bot.terminate);
 
+// Functions invoked from UI
 let callUser = bot.callUser;
