@@ -13,6 +13,7 @@ logger.transports.file.file = config.logFile || __dirname + '/log.txt';
 logger.transports.file.maxSize = 1024 * 1024;
 
 let debug = /--debug/.test(process.argv[2]);
+let kiosk =  /--kiosk/.test(process.argv[2]);
 let relaunch;
 
 process.argv.forEach(function(argv, index) {
@@ -27,8 +28,8 @@ function createWindow() {
     logger.info(`[ELECTRON] Create Window`);
     // Create the browser window.
     let win = new BrowserWindow({
-        kiosk: !debug,
-        height: 480
+        kiosk: kiosk
+        //height: 480
     });
 
     // and load the index.html of the app.

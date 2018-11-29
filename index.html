@@ -6,11 +6,11 @@
     <title>Circuit Reception Kiosk</title>
   </head>
   <body>
+    <audio id="remoteAudio" autoplay></audio>
     <div class="screen">
       <div class="header">
         <div class="title">ATOS Boca Raton Office</div>
       </div>
-      <audio id="remoteAudio" autoplay></audio>
       <div class="main-content">
         <div class="logo-section" id="splash_logo">
           <img src="./assets/icons/atos-olympic-games-thumbnail.jpg" id="logo" class="logo"></img>
@@ -18,34 +18,39 @@
         <div class="remote-video-section" id="call_screen">
           <video id="remoteVideo" class="remote-video" autoplay></video>
         </div>
-        <div class="search-result-section" id="users_section">
-          <ul id="userList" class="users-list">
-            <li class="user-block" onclick="callUser(0)" id="user_0">
-              <button class="user-data">
-                <img class="user-image" id="user_image_0"></img>
-                <div class="user-name" id="user_name_0"></div>
-              </button>
-            </li>
-            <li class="user-block" onclick="callUser(1)" id="user_1">
-              <button class="user-data">
-                <img class="user-image" id="user_image_1"></img>
-                <div class="user-name" id="user_name_1"></div>
-              </button>
-            </li>
-            <li class="user-block" onclick="callUser(2)" id="user_2">
-              <button class="user-data">
-                <img class="user-image" id="user_image_2"></img>
-                <div class="user-name" id="user_name_2"></div>
-              </button>
-            </li>
-            <li class="user-block" onclick="callUser(3)" id="user_3">
-              <button class="user-data">
-                <img class="user-image" id="user_image_3"></img>
-                <div class="user-name" id="user_name_3"></div>
-              </button>
-            </li>
-          </ul>
-          <div class="keybard" id="keyboard">
+        <div class="search-users-section" id="users_section">
+          <div class="search-results">
+            <ul id="userList" class="users-list">
+              <li class="user-block" onclick="callUser(0)" id="user_0">
+                <button class="user-data">
+                  <img class="user-image" id="user_image_0"></img>
+                  <div class="user-name" id="user_name_0"></div>
+                </button>
+              </li>
+              <li class="user-block" onclick="callUser(1)" id="user_1">
+                <button class="user-data">
+                  <img class="user-image" id="user_image_1"></img>
+                  <div class="user-name" id="user_name_1"></div>
+                </button>
+              </li>
+              <li class="user-block" onclick="callUser(2)" id="user_2">
+                <button class="user-data">
+                  <img class="user-image" id="user_image_2"></img>
+                  <div class="user-name" id="user_name_2"></div>
+                </button>
+              </li>
+              <li class="user-block" onclick="callUser(3)" id="user_3">
+                <button class="user-data">
+                  <img class="user-image" id="user_image_3"></img>
+                  <div class="user-name" id="user_name_3"></div>
+                </button>
+              </li>
+            </ul>
+          </div>
+          <div class="search-string-wrapper">
+              <div class="search-string">EXAMPLE</div>
+          </div>
+          <div class="keyboard" id="keyboard">
             <div class="keys-line">
               <button class="key" onclick="clickKey('Q')">Q</button>
               <button class="key" onclick="clickKey('W')">W</button>

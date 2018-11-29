@@ -20,7 +20,7 @@ const MAX_USERS = 4;
 // let audioElement;
 
 let uiData = {
-    status: 'SPLASH',
+    status: 'USERS',
     users: [],
     searchId: null,
     searchString: ''
@@ -491,7 +491,7 @@ let Bot = function(client) {
             // videoElement.onloadedmetadata = e => videoElement.play();
 
             let remoteAudioStream = client.getRemoteStreams(call.callId).find((s) => s.getAudioTracks().length > 0);
-            uiElements.audioSrcObject = remoteAudioStream;
+            uiElements.audio.srcObject = remoteAudioStream;
 
             // await client.setAudioVideoStream(call.callId, mediaStream);
             await sleep(2000);
@@ -571,14 +571,14 @@ let Bot = function(client) {
         uiData.users = uiData.users || [];
         uiData.users.forEach(function (user, index) {
             if (index < MAX_USERS) {
-                uiElements.usersUI[index].display = 'inline-block';
-                uiElements.usersUI[index].text = `${user.firstName} ${user.lastName}`;
-                uiElements.usersUI[index].avatar = user.avatar;
+                uiElements.usersUI[index].style.display = 'inline-block';
+                uiElements.usersUI[index].text.innerHTML = `${user.firstName} ${user.lastName}`;
+                uiElements.usersUI[index].src = user.avatar;
             }
         });
         if (uiData.users.length < MAX_USERS) {
             for(let i = uiData.users.length; i < MAX_USERS; i++) {
-                uiElements.userUI[i].display = 'none';
+                uiElements.usersUI[i].style.display = 'none';
             }            
         }
     };
@@ -602,14 +602,14 @@ let Bot = function(client) {
         uiElements.usersUI = [];
         for (let i = 0; i < MAX_USERS; i++) {
             let uiUser = {
-                display: document.querySelector(`#user_${i}`).style.dislpay,
-                text: document.querySelector(`#user_name_${i}`).innerHTML,
-                avatar: document.querySelector(`#user_image_${i}`).src
+                style: document.querySelector(`#user_${i}`).style,
+                text: document.querySelector(`#user_name_${i}`),
+                avatar: document.querySelector(`#user_image_${i}`),
             }
             uiElements.usersUI.push(uiUser);
         }
-        uiElements.videoSrcObject = document.querySelector('video').srcObject;
-        uiElements.audioSrcObject = document.querySelector('audio').srcObject;
+        uiElements.videoElement = document.querySelector('video').srcObject;
+        uiElements.audioElement = document.querySelector('audio').srcObject;
     };
 
 };

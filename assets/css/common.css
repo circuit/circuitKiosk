@@ -1,9 +1,19 @@
+.body {
+    margin: 0;
+}
+*{
+    box-sizing: border-box;
+}
 .screen {
     color:whitesmoke; 
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
 }
 .header {
     background-color: darkslategray;
     text-align: center;
+    height: 10%;
 }
 .title {
     font-size: 24px;
@@ -11,7 +21,9 @@
     padding: 5px;
 }
 .main-content {
-    height:max-content;
+    flex: 1;
+    flex-direction: column;
+    display: flex;
 }
 .remote-video-section {
     display: none;
@@ -19,8 +31,14 @@
 .remote-video {
     height:300px;
 }
-.search-result-section {
-    display: none;
+.search-users-section {
+    display: flex;
+    flex-direction: column-reverse;
+    height: 100%;
+}
+.search-results {
+    flex-grow: 1;
+    min-height: 60%;
 }
 .user-button {
     border: none;
@@ -59,6 +77,8 @@
     flex-direction: row;
     background-color: steelblue;
     font-size: 14px;
+    height: 8%;
+    align-items: center;
 }
 .date-time-temp {
     display: flex;
@@ -68,16 +88,37 @@
     width: 100%;
     max-height: 80%;
 }
+.search-string-wrapper {
+    text-align: center;
+}
+.search-string {
+    align-self: center;
+    font-size: 20px;
+    color: black;
+}
 .keyboard {
     display: flex;
     flex-direction: column;
+    min-height: 30%;
+    align-items: center;
+    border-color: black;
+    margin: 1px;
 }
 .keys-line {
     display: flex;
     flex-direction: row;
+    padding-top: 2px; 
 }
-.keys {
-    border: 1px;
+.key {
+    border-color: black;
+    border-radius: 2px;
     background-color: transparent;
     color: black;
+    font-size: 18px;
+    padding: 2px 2px 2px 2px;
+    min-width: 40px;
+    margin-right: 2px;
+}
+.key:hover {
+    background-color: grey;    
 }

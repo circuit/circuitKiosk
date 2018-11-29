@@ -6,7 +6,8 @@
   "scripts": {
     "start": "electron .",
     "dev": "electron . --debug",
-    "test": "test"
+    "test": "test",
+    "kiosk": "electron . --kiosk"
   },
   "repository": {
     "type": "git",
