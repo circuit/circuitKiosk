@@ -19,7 +19,8 @@ const MAX_USERS = 16;
 let uiData = {
     status: 'USERS',
     users: [],
-    searchId: null
+    searchId: null,
+    receptionist: config.receptionist
 };
 
 process.argv.forEach(function(argv, index) {
@@ -574,11 +575,24 @@ let Bot = function(client) {
         uiElements.userSearchStyle.display = 'flex';
         uiElements.callScreenStyle.display = 'none';
         uiData.users = uiData.users || [];
+        if (uiData.receptionist && uiData.receptionist.groupConvId) {
+            uiData.users.unshift({
+                firstName: uiData.receptionist.firstName,
+                lastName: uiData.receptionist.lastName,
+                avatar: uiData.receptionist.picture,
+                userId: uiData.receptionist.groupConvId,
+                isGroupCall: uiData.receptionist.groupConvId,
+                isReceptionist: true
+            });
+        }
         uiData.users.forEach(function (user, index) {
             if (index < MAX_USERS) {
                 uiElements.usersUI[index].style.display = 'inline-block';
                 uiElements.usersUI[index].text.innerHTML = `${user.firstName} ${user.lastName}`;
                 uiElements.usersUI[index].avatar.src = user.avatar;
+                if (user.isReceptionist) {
+                    document.querySelector('#receptionist').style.backgroundColor = '#FF0000';
+                }
             }
         });
         if (uiData.users.length < MAX_USERS) {
