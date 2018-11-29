@@ -14,10 +14,7 @@ const USERS = 'USERS';
 const CALL = 'CALL';
 
 // Max Users that can be display on the screen
-const MAX_USERS = 4;
-
-// let videoElement;
-// let audioElement;
+const MAX_USERS = 16;
 
 let uiData = {
     status: 'USERS',
@@ -297,6 +294,7 @@ let Bot = function(client) {
             currentCall = null;
             botState.setState(states.IDLE);
             uiData.status = SPLASH;
+            self.updateUI();
         }
     };
 
