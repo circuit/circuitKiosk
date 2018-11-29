@@ -22,8 +22,7 @@ const MAX_USERS = 4;
 let uiData = {
     status: 'USERS',
     users: [],
-    searchId: null,
-    searchString: ''
+    searchId: null
 };
 
 process.argv.forEach(function(argv, index) {
@@ -297,6 +296,7 @@ let Bot = function(client) {
             // process.exit(1);
             currentCall = null;
             botState.setState(states.IDLE);
+            uiData.status = SPLASH;
         }
     };
 
@@ -355,7 +355,7 @@ let Bot = function(client) {
                         self.getLogFile(convId, itemId);
                         break;
                     case 'search':
-                        self.searchUsers(convId, itemId, params);
+                        self.searchUsers(convId, itemId, params && params[0], true);
                         break;
                     case 'switchView':
                         uiData.status = params[0];
@@ -490,9 +490,12 @@ let Bot = function(client) {
             // videoElement.srcObject = mediaStream;
             // videoElement.onloadedmetadata = e => videoElement.play();
 
-            let remoteAudioStream = client.getRemoteStreams(call.callId).find((s) => s.getAudioTracks().length > 0);
-            uiElements.audio.srcObject = remoteAudioStream;
-
+            let remoteStreams = client.getRemoteStreams(call.callId);
+            let remoteAudioStream = remoteStreams.find((s) => s.getAudioTracks().length > 0);
+            uiElements.audioElement.srcObject = remoteAudioStream;
+            if(call.remoteVideoStreams && call.remoteVideoStreams.length) {
+                uiElements.videoElement.srcObject = call.remoteVideoStreams[0].stream;
+            }
             // await client.setAudioVideoStream(call.callId, mediaStream);
             await sleep(2000);
             await client.unmute(call.callId);
@@ -502,13 +505,15 @@ let Bot = function(client) {
     /*
      * Search Users
      */
-    this.searchUsers = async function(convId, itemId, searchString) {
-        if (!searchString || searchString.length !== 1) {
-            logger.error(`[MONAS] Invalid Syntax`);
-            self.sendErrorItem(convId, itemId, 'Invalid syntax. Sintax: search searchString');
+    this.searchUsers = async function(convId, itemId, searchString, test) {
+        if (!searchString || !searchString.length) {
+            if (test) {
+                logger.error(`[MONAS] Invalid Syntax`);
+                self.sendErrorItem(convId, itemId, 'Invalid syntax. Sintax: search searchString');
+            }
             return;
         }
-        uiData.searchId = client.startUserSearch(searchString[0]);
+        uiData.searchId = client.startUserSearch(searchString);
     };
 
     /*
@@ -540,6 +545,8 @@ let Bot = function(client) {
     this.callUser = function(userIndex) {
         let user = uiData.users[userIndex];
         logger.info(`[MONAS] Calling user ${user.firstName} ${user.lastName}`);
+        uiData.status = CALL;
+        self.updateUI();
         client.makeCall(user.userId, {audio: true, video: true}, true);
     }
 
@@ -566,14 +573,14 @@ let Bot = function(client) {
 
     this.showUsers = function () {
         uiElements.splashLogoStyle.display = 'none';
-        uiElements.userSearchStyle.display = 'inline';
+        uiElements.userSearchStyle.display = 'flex';
         uiElements.callScreenStyle.display = 'none';
         uiData.users = uiData.users || [];
         uiData.users.forEach(function (user, index) {
             if (index < MAX_USERS) {
                 uiElements.usersUI[index].style.display = 'inline-block';
                 uiElements.usersUI[index].text.innerHTML = `${user.firstName} ${user.lastName}`;
-                uiElements.usersUI[index].src = user.avatar;
+                uiElements.usersUI[index].avatar.src = user.avatar;
             }
         });
         if (uiData.users.length < MAX_USERS) {
@@ -584,7 +591,7 @@ let Bot = function(client) {
     };
 
     this.showSplash = function () {
-        uiElements.splashLogoStyle.display = 'inline';
+        uiElements.splashLogoStyle.display = 'flex';
         uiElements.userSearchStyle.display = 'none';
         uiElements.callScreenStyle.display = 'none';
     };
@@ -592,7 +599,7 @@ let Bot = function(client) {
     this.showCall = function () {
         uiElements.splashLogoStyle.display = 'none';
         uiElements.userSearchStyle.display = 'none';
-        uiElements.callScreenStyle.display = 'inline';
+        uiElements.callScreenStyle.display = 'flex';
     };
 
     this.initUI = function () {
@@ -608,8 +615,32 @@ let Bot = function(client) {
             }
             uiElements.usersUI.push(uiUser);
         }
-        uiElements.videoElement = document.querySelector('video').srcObject;
-        uiElements.audioElement = document.querySelector('audio').srcObject;
+        uiElements.searchString = document.querySelector('#search_string');
+        uiElements.videoElement = document.querySelector('video');
+        uiElements.audioElement = document.querySelector('audio');
+    };
+
+    this.clickKey = function (key) {
+        uiElements.searchString.innerHTML += key;
+        uiData.searchId = client.startUserSearch(uiElements.searchString.innerHTML);
+    };
+
+    this.clickEnter = function () {
+        if (uiData.searchId) {
+            client.cancelSearch(uiData.searchId);
+        }
+        if (uiElements.searchString.innerHTML) {
+            uiData.searchId = client.startUserSearch(uiElements.searchString.innerHTML);
+        }
+    };
+
+    this.clickBS = function () {
+        if (uiElements.searchString.innerHTML.length) {
+            uiElements.searchString.innerHTML = uiElements.searchString.innerHTML.slice(0, uiElements.searchString.innerHTML.length-1);
+        }
+        if (uiElements.searchString.innerHTML) {
+            uiData.searchId = client.startUserSearch(uiElements.searchString.innerHTML);
+        }
     };
 
 };
@@ -622,3 +653,6 @@ bot.logonBot()
 
 // Functions invoked from UI
 let callUser = bot.callUser;
+let clickKey = bot.clickKey;
+let clickEnter = bot.clickEnter;
+let clickBS = bot.clickBS;

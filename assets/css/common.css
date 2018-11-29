@@ -27,13 +27,16 @@
 }
 .remote-video-section {
     display: none;
+    height: 100%;
+    align-items: center;
 }
 .remote-video {
-    height:300px;
+    height: -webkit-fill-availale;
+    flex: 1;
 }
 .search-users-section {
     display: flex;
-    flex-direction: column-reverse;
+    flex-direction: column;
     height: 100%;
 }
 .search-results {
