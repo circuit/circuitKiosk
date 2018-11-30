@@ -7,6 +7,7 @@ const logger = require('electron-log');
 const {ipcRenderer} = require('electron');
 const fs = require('fs');
 const Circuit = require('circuit-sdk/circuit.js');
+const GpioHelper = require('./gpioWrapper');
 
 // UI States
 const SPLASH = 'SPLASH';
@@ -17,10 +18,11 @@ const CALL = 'CALL';
 const MAX_USERS = 16;
 
 let uiData = {
-    status: 'USERS',
+    status: SPLASH,
     users: [],
     searchId: null,
-    receptionist: config.receptionist
+    receptionist: config.receptionist,
+    switchViewTimer: null
 };
 
 process.argv.forEach(function(argv, index) {
@@ -30,6 +32,7 @@ process.argv.forEach(function(argv, index) {
 let Bot = function(client) {
     let self = this;
     let commander = new Commander(logger);
+    let gpioHelper = new GpioHelper(logger);
     let botState = new BotState(states.INITIALIZING, logger);
     let currentCall;
     let user;
@@ -54,6 +57,8 @@ let Bot = function(client) {
                 try {
                     user = await client.logon();
                     clearInterval(retry);
+                    gpioHelper.initMotionSensor();
+                    gpioHelper.subscribeToMotionDetection(self.motionChange, GpioHelper.MODE_BOTH);
                     resolve();
                 } catch (error) {
                     logger.error(`[MONAS]: Error logging Bot. Error: ${error}`);
@@ -653,6 +658,17 @@ let Bot = function(client) {
         if (uiElements.searchString.innerHTML) {
             uiData.searchId = client.startUserSearch(uiElements.searchString.innerHTML);
         }
+    };
+
+    this.motionChange = function(status) {
+        logger.debug(`[MONAS] Motion detected status ${status}`);
+        if (uiData.switchViewTimer) {
+            clearTimeout(uiData.switchViewTimer);
+        }
+        uiData.switchViewTimer = setTimeout(function () {
+                uiData.status = (status == GpioHelper.STATUS_OFF ? SPLASH : USERS);
+                self.updateUI();
+            }, 2000);
     };
 
 };

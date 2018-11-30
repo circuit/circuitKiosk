@@ -25,7 +25,12 @@
     "electron": "^3.0.8",
     "electron-log": "^2.2.14",
     "file-api": "^0.10.4",
-    "node-ipc": "^9.1.1"
+    "node-ipc": "^9.1.1",
+    "node-dht-sensor": "0.0.34",
+    "onoff": "^3.2.2",
+    "pigpio": "^1.1.4"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "electron-rebuild": "^1.8.2"
+  }
 }
