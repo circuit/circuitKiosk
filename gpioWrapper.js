@@ -64,6 +64,14 @@ let GpioHelper = function (logger) {
         }
     };
 
+    this.getCurrentMotionSensorStatus = function () {
+        if (!motionSensor) {
+            logger.error('[GPIO] Motion sensor has not be initialized yet');
+            return;
+        }
+        return motionSensor.readSync();
+    };
+
     function notifySubscribersOfMotionDetection(status) {
         logger.debug(`[GPIO] Notifying ${motionDetectionSubscribers.length} subscribers for status ${status}`);
         motionDetectionSubscribers.forEach(function(subs, index) {

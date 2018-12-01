@@ -17,6 +17,11 @@ const CALL = 'CALL';
 // Max Users that can be display on the screen
 const MAX_USERS = 16;
 
+// Presence detection time to switch to USERS screen
+const SWITCH_TO_USERS_TIME = 1000; // 1 second
+// Time to switch back to splash screen after no more presence
+const SWITCH_BACK_TO_SPLASH = 20000; // 2 seconds
+
 let uiData = {
     status: SPLASH,
     users: [],
@@ -668,9 +673,15 @@ let Bot = function(client) {
             clearTimeout(uiData.switchViewTimer);
         }
         uiData.switchViewTimer = setTimeout(function () {
-                uiData.status = (status == GpioHelper.STATUS_OFF ? SPLASH : USERS);
-                self.updateUI();
-            }, 2000);
+            //TODO: Consider motion off during a call
+            // Temporary for call testing
+            if (currentCall) {
+                return;
+            }
+
+            uiData.status = (status == GpioHelper.STATUS_OFF ? SPLASH : USERS);
+            self.updateUI();
+        }, (status === GpioHelper.STATUS_OFF ? SWITCH_BACK_TO_SPLASH : SWITCH_TO_USERS_TIME));
     };
 
 };
