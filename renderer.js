@@ -581,14 +581,16 @@ let Bot = function(client) {
         uiElements.callScreenStyle.display = 'none';
         uiData.users = uiData.users || [];
         if (uiData.receptionist && uiData.receptionist.groupConvId) {
-            uiData.users.unshift({
-                firstName: uiData.receptionist.firstName,
-                lastName: uiData.receptionist.lastName,
-                avatar: uiData.receptionist.picture,
-                userId: uiData.receptionist.groupConvId,
-                isGroupCall: uiData.receptionist.groupConvId,
-                isReceptionist: true
-            });
+            if (uiData.users.length == 0 || !uiData.users[0].isReceptionist) {
+                uiData.users.unshift({
+                    firstName: uiData.receptionist.firstName,
+                    lastName: uiData.receptionist.lastName,
+                    avatar: uiData.receptionist.picture,
+                    userId: uiData.receptionist.groupConvId,
+                    isGroupCall: uiData.receptionist.groupConvId,
+                    isReceptionist: true
+                });
+            }
         }
         uiData.users.forEach(function (user, index) {
             if (index < MAX_USERS) {
