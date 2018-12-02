@@ -50,7 +50,7 @@ let GpioHelper = function (logger) {
                     });
                 }, SENSOR_QUERY_INTERVAL);
             }
-            return motionDetectionSubscribers.length;
+            return motionDetectionSubscribers.length - 1;
         }
         logger.error('[GPIO] No callback provided');
     };
@@ -61,6 +61,7 @@ let GpioHelper = function (logger) {
         }
         if (!motionDetectionSubscribers.length) {
             clearInterval(motionSensorTimer);
+            motionSensorTimer = null;
         }
     };
 

@@ -44,6 +44,7 @@ let Bot = function(client) {
     let user;
     let relaunch;
     let uiElements = {};
+    let motionDetectorIndex;
 
     ipcRenderer.on('relaunch', () => {
         logger.info('[MONAS]: Received relaunch');
@@ -64,7 +65,7 @@ let Bot = function(client) {
                     user = await client.logon();
                     clearInterval(retry);
                     gpioHelper.initMotionSensor();
-                    gpioHelper.subscribeToMotionDetection(self.motionChange, GpioHelper.MODE_BOTH);
+                    motionDetectorIndex = gpioHelper.subscribeToMotionDetection(self.motionChange, GpioHelper.MODE_BOTH);
                     resolve();
                 } catch (error) {
                     logger.error(`[MONAS]: Error logging Bot. Error: ${error}`);
@@ -278,6 +279,11 @@ let Bot = function(client) {
             logger.info(`[MONAS] Unhandled call state: ${evt.call.state}`);
         }
         currentCall = evt.call;
+        // Unsubscribe for motion detection
+        gpioHelper.unsubscribeFromMotionDetection(motionDetectorIndex);
+        if (uiData.switchViewTimer) {
+            clearTimeout(uiData.switchViewTimer);
+        }
     };
 
     /*
@@ -302,13 +308,14 @@ let Bot = function(client) {
      * processCallEndedEvent
      */
     this.processCallEndedEvent = function(evt) {
-        if (evt.call.callId === currentCall.callId && botState.getState() === states.INCALL) {
+        if (evt.call.callId === currentCall.callId /*&& botState.getState() === states.INCALL*/) {
             // ipcRenderer.send('relaunch');
             // process.exit(1);
             currentCall = null;
             botState.setState(states.IDLE);
             uiData.status = SPLASH;
             self.updateUI();
+            motionDetectorIndex = gpioHelper.subscribeToMotionDetection(self.motionChange, GpioHelper.MODE_BOTH);
         }
     };
 
@@ -565,6 +572,7 @@ let Bot = function(client) {
         self.updateUI();
         client.makeCall(user.userId, {audio: true, video: true}, true);
         uiElements.searchString.innerHTML = '';
+        uiData.users = [];
     }
 
     /*
@@ -702,14 +710,10 @@ let Bot = function(client) {
             clearTimeout(uiData.switchViewTimer);
         }
         uiData.switchViewTimer = setTimeout(function () {
-            //TODO: Consider motion off during a call
-            // Temporary for call testing
-            if (currentCall) {
-                return;
-            }
-
             uiData.status = (status == GpioHelper.STATUS_OFF ? SPLASH : USERS);
-            self.updateUI();
+            uiElements.searchString.innerHTML = '';
+            uiData.users = [];
+                self.updateUI();
         }, (status === GpioHelper.STATUS_OFF ? SWITCH_BACK_TO_SPLASH : SWITCH_TO_USERS_TIME));
     };
 
