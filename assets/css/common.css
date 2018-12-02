@@ -26,13 +26,35 @@
     display: flex;
 }
 .remote-video-section {
-    display: none;
+    display: flex;
+    flex-direction: column;
     height: 100%;
     align-items: center;
 }
 .remote-video {
     height: -webkit-fill-availale;
     flex: 1;
+}
+.large-avatar {
+    display: flex;
+    border-radius: 250px;
+    margin-top: 80px;
+    margin-bottom: 20px;
+}
+.calling-legend {
+    display: flex;
+    color: brown;
+    font-size: 26px;
+}
+.blinking{
+	animation:blinkingText 0.8s infinite;
+}
+@keyframes blinkingText{
+	0%{		color: #000;	}
+	49%{	color: transparent;	}
+	50%{	color: transparent;	}
+	99%{	color:transparent;	}
+	100%{	color: #000;	}
 }
 .search-users-section {
     display: flex;

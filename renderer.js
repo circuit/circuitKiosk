@@ -13,6 +13,7 @@ const GpioHelper = require('./gpioWrapper');
 const SPLASH = 'SPLASH';
 const USERS = 'USERS';
 const CALL = 'CALL';
+const CALLING = 'CALLING';
 
 // Max Users that can be display on the screen
 const MAX_USERS = 16;
@@ -271,6 +272,8 @@ let Bot = function(client) {
             // At least two participants. Me and someelse. Setup Media.
             self.setupMedia(evt.call);
             botState.setState(states.INCALL);
+            uiData.status = CALL;
+            self.updateUI();
         } else {
             logger.info(`[MONAS] Unhandled call state: ${evt.call.state}`);
         }
@@ -554,9 +557,14 @@ let Bot = function(client) {
     this.callUser = function(userIndex) {
         let user = uiData.users[userIndex];
         logger.info(`[MONAS] Calling user ${user.firstName} ${user.lastName}`);
-        uiData.status = CALL;
+        uiData.callingUser = {
+            avatar: user.avatarLarge,
+            legend: `Calling ${user.firstName} ${user.lastName}`
+        };
+        uiData.status = CALLING;
         self.updateUI();
         client.makeCall(user.userId, {audio: true, video: true}, true);
+        uiElements.searchString.innerHTML = '';
     }
 
     /*
@@ -573,6 +581,8 @@ let Bot = function(client) {
             case CALL:
                 self.showCall();
                 break;
+            case CALLING:
+                self.showCalling();
             default:
                 logger.error(`[MONAS] Invalud UI Status: ${uiData.status}`);
                 break;
@@ -624,6 +634,19 @@ let Bot = function(client) {
         uiElements.splashLogoStyle.display = 'none';
         uiElements.userSearchStyle.display = 'none';
         uiElements.callScreenStyle.display = 'flex';
+        uiElements.videoElement.style.display = 'flex';
+        uiElements.callingUser.avatar.style.display = 'none';
+        uiElements.callingUser.legend.style.display = 'none';
+    };
+
+    this.showCalling = function () {
+        uiElements.splashLogoStyle.display = 'none';
+        uiElements.userSearchStyle.display = 'none';
+        uiElements.callScreenStyle.display = 'flex';
+        uiElements.videoElement.style.display = 'none';
+        uiElements.callingUser.avatar.src = uiData.callingUser.avatar;
+        uiElements.callingUser.legend.innerHTML = uiData.callingUser.legend;
+        uiElements.callingUser.avatar.style = 'flex';
     };
 
     this.initUI = function () {
@@ -642,6 +665,12 @@ let Bot = function(client) {
         uiElements.searchString = document.querySelector('#search_string');
         uiElements.videoElement = document.querySelector('video');
         uiElements.audioElement = document.querySelector('audio');
+        uiElements.callingUser = {
+            avatar: document.querySelector(`#callingUserAvatar`),
+            legend: document.querySelector(`#callingUserLegend`)
+        };
+        uiElements.callingUserStype = document.querySelector('#calling');
+
     };
 
     this.clickKey = function (key) {
