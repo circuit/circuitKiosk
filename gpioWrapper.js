@@ -2,8 +2,8 @@
 let Gpio = require('onoff').Gpio; //include onoff to interact with the GPIO
 //GPIO Definitions
 let GPIO_PIN_25 = 25; // Motion Sensor
-let GPIO_PIN_26 = 26;
-let GPIO_PIN_19 = 19;
+let GPIO_PIN_16 = 16; // LED
+let GPIO_PIN_12 = 12; // Buzzer
 
 let STATUS_OFF = 0;
 let STATUS_ON = 1;
@@ -17,6 +17,8 @@ const SENSOR_QUERY_INTERVAL = 100; // 1 sec
 
 let GpioHelper = function (logger) {
     let motionSensor;
+    let LED;
+    let buzzer;
     let motionDetectionSubscribers = [];
     let motionSensorTimer;
     let currentDetectionStatus = null;
@@ -24,6 +26,22 @@ let GpioHelper = function (logger) {
 
     this.initMotionSensor = function(gpioPin) {
        motionSensor = new Gpio(gpioPin || GPIO_PIN_25, 'in', 'both');
+    };
+
+    this.initLED = function(gpioPin) {
+        LED = new Gpio(gpioPin || GPIO_PIN_16, 'out');
+    };
+
+    this.setLED = function(status) {
+        LED.writeSync(status);
+    };
+
+    this.initBuzzer = function(gpioPin) {
+        buzzer = new Gpio(gpioPin || GPIO_PIN_12, 'out');
+    };
+
+    this.setBuzzer = function(status) {
+        buzzer.writeSync(status);
     };
 
     this.subscribeToMotionDetection = function (callbak, mode) {

@@ -21,7 +21,7 @@ const MAX_USERS = 16;
 // Presence detection time to switch to USERS screen
 const SWITCH_TO_USERS_TIME = 1000; // 1 second
 // Time to switch back to splash screen after no more presence
-const SWITCH_BACK_TO_SPLASH = 20000; // 2 seconds
+const SWITCH_BACK_TO_SPLASH = 20000; // 5 seconds
 
 let uiData = {
     status: SPLASH,
@@ -46,6 +46,7 @@ let Bot = function(client) {
     let uiElements = {};
     let motionDetectorIndex;
 
+
     ipcRenderer.on('relaunch', () => {
         logger.info('[MONAS]: Received relaunch');
         relaunch = true;
@@ -66,6 +67,10 @@ let Bot = function(client) {
                     clearInterval(retry);
                     gpioHelper.initMotionSensor();
                     motionDetectorIndex = gpioHelper.subscribeToMotionDetection(self.motionChange, GpioHelper.MODE_BOTH);
+                    gpioHelper.initLED();
+                    gpioHelper.initBuzzer();
+                    gpioHelper.setLED(GpioHelper.STATUS_OFF);
+                    gpioHelper.setBuzzer(GpioHelper.STATUS_OFF);
                     resolve();
                 } catch (error) {
                     logger.error(`[MONAS]: Error logging Bot. Error: ${error}`);
@@ -354,6 +359,10 @@ let Bot = function(client) {
                         break;
                     case 'showHelp':
                         self.showHelp(convId, itemId, params);
+                        gpioHelper.setBuzzer(GpioHelper.STATUS_ON);
+                        setTimeout(function() {
+                            gpioHelper.setBuzzer(GpioHelper.STATUS_OFF);
+                        }, 2000);
                         break;
                     case 'start':
                         let conv = await client.getConversationById(convId);
