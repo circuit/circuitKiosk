@@ -1,12 +1,17 @@
 'use strict';
 let Gpio = require('onoff').Gpio; //include onoff to interact with the GPIO
+let DHTSensor = require("node-dht-sensor");
+
 //GPIO Definitions
 let GPIO_PIN_25 = 25; // Motion Sensor
 let GPIO_PIN_16 = 16; // LED
 let GPIO_PIN_12 = 12; // Buzzer
+let GPIO_PIN_21 = 21; // Hygrothermograph Sensor
 
 let STATUS_OFF = 0;
 let STATUS_ON = 1;
+
+let HYGRO_THERMO_GRAPH_SENSOR_TYPE_DHT11 = 11;
 
 //Motion detection modes
 const MODE_ON_ONLY= 'MODE_ON_ONLY';
@@ -22,6 +27,8 @@ let GpioHelper = function (logger) {
     let motionDetectionSubscribers = [];
     let motionSensorTimer;
     let currentDetectionStatus = null;
+    let dht_type = HYGRO_THERMO_GRAPH_SENSOR_TYPE_DHT11;
+    let dht_pin = GPIO_PIN_21;
     let self = this;
 
     this.initMotionSensor = function(gpioPin) {
@@ -83,6 +90,17 @@ let GpioHelper = function (logger) {
         }
     };
 
+    this.readTempAndHumidity = function (cb, gpioPin, dhtType) {
+        DHTSensor.read(dhtType || HYGRO_THERMO_GRAPH_SENSOR_TYPE_DHT11, gpioPin || GPIO_PIN_21, function(err, temp, humidity) {
+            if(!err) {
+                console.log(`Temperature: ${temp.toFixed(1)} °C. Humidity: ${humidity.toFixed(1)} %`);
+                cb && cb(temp, humidity);
+            } else {
+                console.log(`Error reading DHT11. Error: ${err}`);
+            }
+        });
+    };
+
     this.getCurrentMotionSensorStatus = function () {
         if (!motionSensor) {
             logger.error('[GPIO] Motion sensor has not be initialized yet');
@@ -106,7 +124,7 @@ let GpioHelper = function (logger) {
                 }
             }
         })
-    }
+    };
 };
 module.exports = GpioHelper;
 module.exports.MODE_BOTH = MODE_BOTH;

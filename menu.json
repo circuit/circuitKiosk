@@ -36,5 +36,10 @@
         "description": "Switch UI Views",
         "command": "switchView",
         "test": true
+    },
+    "temp": {
+        "description": "Get Temperature and humidity",
+        "command": "getTemp",
+        "test": true
     }
 }

@@ -390,6 +390,12 @@ let Bot = function(client) {
                     case 'openDoor':
                         self.openDoor(convId, itemId);
                         break;
+                    case 'getTemp':
+                        gpioHelper.readTempAndHumidity(function(temp, humidity) {
+                            client.addTextItem(convId, self.buildConversationItem(itemId, null,
+                                `Temperature: ${temp}, humidity: ${humidity}`));
+                        });
+                        break;
                     default:
                         logger.info(`[MONAS] I do not understand [${withoutName}]`);
                         client.addTextItem(convId, self.buildConversationItem(itemId, null,
@@ -688,6 +694,10 @@ let Bot = function(client) {
             legend: document.querySelector(`#callingUserLegend`)
         };
         uiElements.callingUserStype = document.querySelector('#calling');
+        uiElements.date = document.querySelector('#date');
+        uiElements.time = document.querySelector('#time');
+        uiElements.temperature = document.querySelector('#temperature');
+        uiElements.humidity = document.querySelector('#humidity');
 
     };
 
