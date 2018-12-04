@@ -22,6 +22,8 @@ const MAX_USERS = 16;
 const SWITCH_TO_USERS_TIME = 1000; // 1 second
 // Time to switch back to splash screen after no more presence
 const SWITCH_BACK_TO_SPLASH = 20000; // 5 seconds
+// Time the door is kept unlock
+const DOOR_UNLOCK_TIME = 2000; // 2 seconds
 
 let uiData = {
     status: SPLASH,
@@ -359,10 +361,6 @@ let Bot = function(client) {
                         break;
                     case 'showHelp':
                         self.showHelp(convId, itemId, params);
-                        gpioHelper.setBuzzer(GpioHelper.STATUS_ON);
-                        setTimeout(function() {
-                            gpioHelper.setBuzzer(GpioHelper.STATUS_OFF);
-                        }, 2000);
                         break;
                     case 'start':
                         let conv = await client.getConversationById(convId);
@@ -388,6 +386,9 @@ let Bot = function(client) {
                     case 'switchView':
                         uiData.status = params[0];
                         self.updateUI();
+                        break;
+                    case 'openDoor':
+                        self.openDoor(convId, itemId);
                         break;
                     default:
                         logger.info(`[MONAS] I do not understand [${withoutName}]`);
@@ -726,7 +727,22 @@ let Bot = function(client) {
         }, (status === GpioHelper.STATUS_OFF ? SWITCH_BACK_TO_SPLASH : SWITCH_TO_USERS_TIME));
     };
 
+    this.openDoor = function(convId, itemId) {
+        if (!currentCall) {
+            let error = 'Attempt to open a door without an active call is not possible';
+            logger.warn(`[MONAS] ${error}`);
+            self.sendErrorItem(convId, itemId, error);
+            return;
+        }
+        gpioHelper.setBuzzer(GpioHelper.STATUS_ON);
+        gpioHelper.setLED(GpioHelper.STATUS_ON);
+        setTimeout(function (){
+            gpioHelper.setBuzzer(GpioHelper.STATUS_OFF);
+            gpioHelper.setLED(GpioHelper.STATUS_OFF);
+            }, DOOR_UNLOCK_TIME);
+    }
 };
+
 Circuit.logger.setLevel(Circuit.Enums.LogLevel.Debug);
 let bot = new Bot(new Circuit.Client(config.bot));
 bot.logonBot()

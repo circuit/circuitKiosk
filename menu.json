@@ -23,6 +23,10 @@
         "description": "Retrieves and attaches the logfile to the conversation",
         "command": "getLogs"
     },
+    "open": {
+        "description": "Unlock door",
+        "command": "openDoor"
+    },
     "search": {
         "description": "Test search users function",
         "command": "search",
