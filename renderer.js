@@ -24,6 +24,12 @@ const SWITCH_TO_USERS_TIME = 1000; // 1 second
 const SWITCH_BACK_TO_SPLASH = 20000; // 5 seconds
 // Time the door is kept unlock
 const DOOR_UNLOCK_TIME = 2000; // 2 seconds
+// Interval to update hygrotermo data
+const UPDATE_HYGROTERMO_INTERVAL = 30000; // 30 seconds
+// Time before starting motion detection
+const TIME_DETECTION_START_DELAY = 10000; // 10 seconds
+// Time after last typing before starting motion detection again
+const RESTART_MOTION_DETECTION_TIME = 10000; // 10 seconds
 
 let uiData = {
     status: SPLASH,
@@ -47,7 +53,8 @@ let Bot = function(client) {
     let relaunch;
     let uiElements = {};
     let motionDetectorIndex;
-
+    let motionDetectionDelay;
+    let receptionConv;
 
     ipcRenderer.on('relaunch', () => {
         logger.info('[MONAS]: Received relaunch');
@@ -67,12 +74,6 @@ let Bot = function(client) {
                 try {
                     user = await client.logon();
                     clearInterval(retry);
-                    gpioHelper.initMotionSensor();
-                    motionDetectorIndex = gpioHelper.subscribeToMotionDetection(self.motionChange, GpioHelper.MODE_BOTH);
-                    gpioHelper.initLED();
-                    gpioHelper.initBuzzer();
-                    gpioHelper.setLED(GpioHelper.STATUS_OFF);
-                    gpioHelper.setBuzzer(GpioHelper.STATUS_OFF);
                     resolve();
                 } catch (error) {
                     logger.error(`[MONAS]: Error logging Bot. Error: ${error}`);
@@ -81,6 +82,33 @@ let Bot = function(client) {
             logger.info(`[MONAS]: Create bot instance with id: ${config.bot.client_id}`);
             retry = setInterval(logon, 2000);
         });
+    };
+
+    this.startSensors = function(motionSensingDelay, initialLedStatus) {
+        return new Promise((resolve) => {
+            gpioHelper.initMotionSensor();
+            setTimeout(function() {
+                motionDetectorIndex = gpioHelper.subscribeToMotionDetection(self.motionChange, GpioHelper.MODE_BOTH);
+            }, motionSensingDelay || TIME_DETECTION_START_DELAY);
+            gpioHelper.initLED();
+            gpioHelper.initBuzzer();
+            gpioHelper.setLED(initialLedStatus || GpioHelper.STATUS_OFF);
+            gpioHelper.setBuzzer(GpioHelper.STATUS_OFF);
+            self.startHygroTermInterval();
+            resolve();
+        });
+    };
+
+    this.getReceptionConversation = async function() {
+        let convId = config.receptionist && config.receptionist.groupConvId;
+        if (convId) {
+            try {
+                receptionConv = await client.getConversationById(config.convId);
+            } catch (error) {
+                logger.error(`[MONAS]: Unable to retrieve receptionist conversation. Error: ${error}`);
+            }
+        }
+        return;
     };
 
     /*
@@ -288,6 +316,7 @@ let Bot = function(client) {
         currentCall = evt.call;
         // Unsubscribe for motion detection
         gpioHelper.unsubscribeFromMotionDetection(motionDetectorIndex);
+        motionDetectorIndex = null;
         if (uiData.switchViewTimer) {
             clearTimeout(uiData.switchViewTimer);
         }
@@ -586,9 +615,15 @@ let Bot = function(client) {
         };
         uiData.status = CALLING;
         self.updateUI();
-        client.makeCall(user.userId, {audio: true, video: true}, true);
+        if (user.isReceptionist) {
+            self.startConference(receptionConv);
+        } else {
+            client.makeCall(user.userId, {audio: true, video: true}, true);
+        }
         uiElements.searchString.innerHTML = '';
         uiData.users = [];
+        gpioHelper.unsubscribeFromMotionDetection(motionDetectorIndex);
+        motionDetectorIndex = null;
     }
 
     /*
@@ -619,12 +654,13 @@ let Bot = function(client) {
         uiElements.userSearchStyle.display = 'flex';
         uiElements.callScreenStyle.display = 'none';
         uiData.users = uiData.users || [];
-        if (uiData.receptionist && uiData.receptionist.groupConvId) {
+        if (uiData.receptionist && uiData.receptionist.groupConvId && receptionConv) {
             if (uiData.users.length == 0 || !uiData.users[0].isReceptionist) {
                 uiData.users.unshift({
                     firstName: uiData.receptionist.firstName,
                     lastName: uiData.receptionist.lastName,
-                    avatar: uiData.receptionist.picture,
+                    avatar: uiData.receptionist.smallPicture,
+                    avatarLarge: uiData.receptionist.largePicture,
                     userId: uiData.receptionist.groupConvId,
                     isGroupCall: uiData.receptionist.groupConvId,
                     isReceptionist: true
@@ -702,11 +738,13 @@ let Bot = function(client) {
     };
 
     this.clickKey = function (key) {
+        self.unsubscribeMotionDetectionWhileTyping();
         uiElements.searchString.innerHTML += key;
         uiData.searchId = client.startUserSearch(uiElements.searchString.innerHTML);
     };
 
     this.clickEnter = function () {
+        self.unsubscribeMotionDetectionWhileTyping();
         if (uiData.searchId) {
             client.cancelSearch(uiData.searchId);
         }
@@ -716,12 +754,34 @@ let Bot = function(client) {
     };
 
     this.clickBS = function () {
+        self.unsubscribeMotionDetectionWhileTyping();
         if (uiElements.searchString.innerHTML.length) {
             uiElements.searchString.innerHTML = uiElements.searchString.innerHTML.slice(0, uiElements.searchString.innerHTML.length-1);
         }
         if (uiElements.searchString.innerHTML) {
             uiData.searchId = client.startUserSearch(uiElements.searchString.innerHTML);
+        } else {
+            uiData.users = [];
+            self.updateUI();
         }
+    };
+
+    this.unsubscribeMotionDetectionWhileTyping = function () {
+        gpioHelper.unsubscribeFromMotionDetection(motionDetectorIndex);
+        logger.debug('[MONAS]: Unsubscribe motion detection while typing');
+        if (uiData.switchViewTimer) {
+            clearTimeout(uiData.switchViewTimer);
+            uiData.switchViewTimer = null;
+        }
+        if (motionDetectionDelay) {
+            clearTimeout(motionDetectionDelay);
+            motionDetectionDelay = null;
+        }
+        motionDetectionDelay = setTimeout(function() {
+            motionDetectorIndex = gpioHelper.subscribeToMotionDetection(self.motionChange, GpioHelper.MODE_BOTH);
+            motionDetectionDelay = null;
+            self.motionChange(GpioHelper.STATUS_OFF);
+        }, RESTART_MOTION_DETECTION_TIME);
     };
 
     this.motionChange = function(status) {
@@ -730,10 +790,13 @@ let Bot = function(client) {
             clearTimeout(uiData.switchViewTimer);
         }
         uiData.switchViewTimer = setTimeout(function () {
+            if (uiData.status === USERS && status === GpioHelper.STATUS_ON) {
+                return;
+            }
             uiData.status = (status == GpioHelper.STATUS_OFF ? SPLASH : USERS);
             uiElements.searchString.innerHTML = '';
             uiData.users = [];
-                self.updateUI();
+            self.updateUI();
         }, (status === GpioHelper.STATUS_OFF ? SWITCH_BACK_TO_SPLASH : SWITCH_TO_USERS_TIME));
     };
 
@@ -750,14 +813,32 @@ let Bot = function(client) {
             gpioHelper.setBuzzer(GpioHelper.STATUS_OFF);
             gpioHelper.setLED(GpioHelper.STATUS_OFF);
             }, DOOR_UNLOCK_TIME);
-    }
+    };
+
+    this.startHygroTermInterval = function (interval) {
+        let update = function() {
+            gpioHelper.readTempAndHumidity(function(temp, humidity) {
+                uiElements.humidity.innerHTML = `Humidity: ${humidity}%`;
+                uiElements.temperature.innerHTML = `Temperature: ${temp}°`;
+                let date = new Date();
+                uiElements.date.innerHTML = `Date: ${date.getMonth()+1}/${date.getDate()}`;
+                uiElements.time.innerHTML = `Time: ${date.getHours()}:${date.getMinutes()}`;
+            });
+        }
+        update();
+        setInterval(function () {
+            logger.debug('[MONAS]: Update bottom bar');
+            update();
+        }, interval || UPDATE_HYGROTERMO_INTERVAL);
+    };
 };
 
 Circuit.logger.setLevel(Circuit.Enums.LogLevel.Debug);
 let bot = new Bot(new Circuit.Client(config.bot));
 bot.logonBot()
     .then(bot.updateUserData)
-    //.then(bot.sayHi)
+    .then(bot.getReceptionConversation)
+    .then(bot.startSensors)
     .catch(bot.terminate);
 
 // Functions invoked from UI
