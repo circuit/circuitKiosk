@@ -21,7 +21,7 @@ const MAX_USERS = 16;
 // Presence detection time to switch to USERS screen
 const SWITCH_TO_USERS_TIME = 1000; // 1 second
 // Time to switch back to splash screen after no more presence
-const SWITCH_BACK_TO_SPLASH = 20000; // 5 seconds
+const SWITCH_BACK_TO_SPLASH = 10000; // 10 seconds
 // Time the door is kept unlock
 const DOOR_UNLOCK_TIME = 2000; // 2 seconds
 // Interval to update hygrotermo data
@@ -786,6 +786,10 @@ let Bot = function(client) {
 
     this.motionChange = function(status) {
         logger.debug(`[MONAS] Motion detected status ${status}`);
+        if (uiData.status === CALL || uiData.status === CALLING) {
+            logger.debug(`[MONAS] Ignoring motion change in status ${uiData.status}`);
+            return;
+        }
         if (uiData.switchViewTimer) {
             clearTimeout(uiData.switchViewTimer);
         }
