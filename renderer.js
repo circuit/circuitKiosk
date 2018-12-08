@@ -236,10 +236,45 @@ let Bot = function(client) {
             case 'basicSearchResults':
                 self.processSearchResults(evt.data).then(self.updateUI);
                 break;
+            case 'formSubmission':
+                self.processFormSubmission(evt);
+                break;
             default:
                 logger.info(`[MONAS]: unhandled event ${evt.type}`);
                 break;
         }
+    };
+
+    this.processFormSubmission = function(evt) {
+        logger.info(`[NOMAS]: process form submission. ${evt.form.id}`);
+        evt.form.data.forEach(ctrl => {
+            logger.debug(`${ctrl.key}: ${ctrl.value}`);
+            switch (ctrl.name) {
+                case 'openDoor':
+                    switch(ctrl.value) {
+                        case 'openDoor':
+                            self.openDoor();
+                            break;
+                        case 'endCall':
+                            break;
+                        default:
+                            logger.error(`Unknown value in submitted form: ${ctrl.value}`);
+                            return;
+                    }
+                    currentCall && client.leaveConference(currentCall.callId);
+                    client.updateTextItem({
+                        itemId: evt.itemId,
+                        content: (ctrl.value === 'openDoor' ? 'Door has been opened' : 'Entrance denied'),
+                        form: {
+                            id: evt.form.id
+                        }
+                    });
+                    break;
+                default:
+                    logger.error(`Unknown key in submitted form: ${ctrl.key}`);
+                    break;
+            }
+        });
     };
 
     /*
@@ -562,6 +597,7 @@ let Bot = function(client) {
             }
             // await client.setAudioVideoStream(call.callId, mediaStream);
             await sleep(2000);
+            self.sendOpenDoorForm(call.convId);
             await client.unmute(call.callId);
         }
     };
@@ -834,6 +870,28 @@ let Bot = function(client) {
             logger.debug('[MONAS]: Update bottom bar');
             update();
         }, interval || UPDATE_HYGROTERMO_INTERVAL);
+    };
+
+    this.sendOpenDoorForm = async function (convId) {
+        const item = await client.addTextItem(convId, {
+            content: 'Select "Open Door" or "I do not know this person"',
+            form: {
+                id: 'openDoorForm',
+                controls: [{
+                    type: Circuit.Enums.FormControlType.BUTTON,
+                    name: 'openDoor',
+                    options: [{
+                        text: 'Open Door',
+                        notification: 'Opening Door',
+                        value: 'openDoor'
+                    }, {
+                        text: 'I do not know this person',
+                        value: 'endCall',
+                        notification: 'Access Denied'
+                    }]
+                }]
+            }
+        });
     };
 };
 
