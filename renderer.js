@@ -68,9 +68,9 @@ let Bot = function(client) {
     this.logonBot = function() {
         return new Promise((resolve) => {
             let retry;
-            self.addEventListeners(client);
-            self.initUI();
-            self.updateUI();
+            addEventListeners(client);
+            initUI();
+            updateUI();
             let logon = async function() {
                 try {
                     user = await client.logon();
@@ -89,7 +89,7 @@ let Bot = function(client) {
         return new Promise((resolve) => {
             gpioHelper.initMotionSensor();
             setTimeout(function() {
-                motionDetectorIndex = gpioHelper.subscribeToMotionDetection(self.motionChange, GpioHelper.MODE_BOTH);
+                motionDetectorIndex = gpioHelper.subscribeToMotionDetection(motionChange, GpioHelper.MODE_BOTH);
             }, motionSensingDelay || TIME_DETECTION_START_DELAY);
             gpioHelper.initLED();
             gpioHelper.initBuzzer();
@@ -137,17 +137,17 @@ let Bot = function(client) {
     /*
      * addEventListeners
      */
-    this.addEventListeners = function(client) {
+    function addEventListeners(client) {
         logger.info('[MONAS]: addEventListeners');
         Circuit.supportedEvents.forEach(function(e) {
-            client.addEventListener(e, self.processEvent);
+            client.addEventListener(e, processEvent);
         });
     };
 
     /*
      * logEvent
      */
-    this.logEvent = function(evt) {
+    function logEvent(evt) {
         logger.info(`[MONAS]: ${evt.type} event received`);
         logger.debug(`[MONAS]:`, util.inspect(evt, {showHidden: true, depth: null}));
     };
@@ -186,14 +186,14 @@ let Bot = function(client) {
         }
         logger.info('[MONAS]: say hi');
         monitoringConv = await getMonitoringConversation();
-        client.addTextItem(monitoringConv.convId, self.buildConversationItem(null, `Hi from ${user.displayName}`,
+        client.addTextItem(monitoringConv.convId, buildConversationItem(null, `Hi from ${user.displayName}`,
             `I am ready. Use "@${user.displayName} help , or ${user.displayName} help, or just //help" to see available commands`));
     };
 
     /*
      * buildConversationItem
      */
-    this.buildConversationItem = function(parentId, subject, content, attachments) {
+    function buildConversationItem(parentId, subject, content, attachments) {
         return {
             parentId: parentId,
             subject: subject,
@@ -216,29 +216,29 @@ let Bot = function(client) {
     /*
      * processEvent
     */
-    this.processEvent = function(evt) {
-        self.logEvent(evt);
+    function processEvent(evt) {
+        logEvent(evt);
         switch (evt.type) {
             case 'itemAdded':
-                self.processItemAddedEvent(evt);
+                processItemAddedEvent(evt);
                 break;
             case 'itemUpdated':
-                self.processItemUpdatedEvent(evt);
+                processItemUpdatedEvent(evt);
                 break;
             case 'callStatus':
-                self.processCallStatusEvent(evt);
+                processCallStatusEvent(evt);
                 break;
             case 'callEnded':
-                self.processCallEndedEvent(evt);
+                processCallEndedEvent(evt);
                 break;
             case 'callIncoming':
-                self.processCallIncomingEvent(evt);
+                processCallIncomingEvent(evt);
                 break;
             case 'basicSearchResults':
-                self.processSearchResults(evt.data).then(self.updateUI);
+                processSearchResults(evt.data).then(updateUI);
                 break;
             case 'formSubmission':
-                self.processFormSubmission(evt);
+                processFormSubmission(evt);
                 break;
             default:
                 logger.info(`[MONAS]: unhandled event ${evt.type}`);
@@ -246,7 +246,7 @@ let Bot = function(client) {
         }
     };
 
-    this.processFormSubmission = function(evt) {
+    processFormSubmission = function(evt) {
         logger.info(`[NOMAS]: process form submission. ${evt.form.id}`);
         evt.form.data.forEach(ctrl => {
             logger.debug(`${ctrl.key}: ${ctrl.value}`);
@@ -254,7 +254,7 @@ let Bot = function(client) {
                 case 'openDoor':
                     switch(ctrl.value) {
                         case 'openDoor':
-                            self.openDoor();
+                            openDoor();
                             break;
                         case 'endCall':
                             break;
@@ -281,22 +281,22 @@ let Bot = function(client) {
     /*
      * processItemAddedEvent
      */
-    this.processItemAddedEvent = function(evt) {
+    function processItemAddedEvent(evt) {
         if (evt.item.text && evt.item.creatorId !== user.userId) {
             logger.info(`[MONAS] Received itemAdded event with itemId [${evt.item.itemId}] and content [${evt.item.text.content}]`);
-            self.processCommand(evt.item.convId, evt.item.parentItemId || evt.item.itemId, evt.item.text.content);
+            processCommand(evt.item.convId, evt.item.parentItemId || evt.item.itemId, evt.item.text.content);
         }
     };
 
     /*
      * processItemUpdatedEvent
      */
-    this.processItemUpdatedEvent = function(evt) {
+    function processItemUpdatedEvent(evt) {
         if (evt.item.text && evt.item.creatorId !== user.userId) {
             if (evt.item.text.content) {
                 let lastPart = evt.item.text.content.split('<hr/>').pop();
                 logger.info(`[MONAS] Received itemUpdated event with: ${lastPart}`);
-                self.processCommand(evt.item.convId, evt.item.parentItemId || evt.item.itemId, lastPart);
+                processCommand(evt.item.convId, evt.item.parentItemId || evt.item.itemId, lastPart);
             }
         }
     };
@@ -304,7 +304,7 @@ let Bot = function(client) {
     /*
      * processCallStatusEvent
      */
-    this.processCallStatusEvent = async function(evt) {
+    async function processCallStatusEvent(evt) {
         logger.info(`[MONAS]: callStatus event: Reason= ${evt.reason}, State= ${currentCall && currentCall.state} ==> ${evt.call.state}`);
         logger.info(`[MONAS]: Bot state: ${botState.getStateText()}`);
 
@@ -318,7 +318,7 @@ let Bot = function(client) {
             if (evt.call.state === 'Started') {
                 // Conference started. Join.
                 let conv = await client.getConversationById(evt.call.convId);
-                this.startConference(conv, evt.call.callId);
+                startConference(conv, evt.call.callId);
             }
         } else if (evt.call.state === 'Waiting') {
             let st = botState.getState();
@@ -342,10 +342,10 @@ let Bot = function(client) {
             }
         } else if (currentCall.state !== 'Active' && evt.call.state === 'Active') {
             // At least two participants. Me and someelse. Setup Media.
-            self.setupMedia(evt.call);
+            setupMedia(evt.call);
             botState.setState(states.INCALL);
             uiData.status = CALL;
-            self.updateUI();
+            updateUI();
         } else {
             logger.info(`[MONAS] Unhandled call state: ${evt.call.state}`);
         }
@@ -361,7 +361,7 @@ let Bot = function(client) {
     /*
      * processCallIncomingEvent
      */
-    this.processCallIncomingEvent = async function(evt) {
+    async function processCallIncomingEvent(evt) {
         if (currentCall && currentCall.callId !== evt.call.callId) {
             // Event is not for current call
             logger.info('[MONAS]: Received event for a different call');
@@ -371,7 +371,7 @@ let Bot = function(client) {
         if (!currentCall) {
             // Incoming call. Answer it.
             let conv = await client.getConversationById(evt.call.convId);
-            this.startConference(conv, evt.call.callId);
+            startConference(conv, evt.call.callId);
         }
         currentCall = evt.call;
     };
@@ -379,22 +379,22 @@ let Bot = function(client) {
     /*
      * processCallEndedEvent
      */
-    this.processCallEndedEvent = function(evt) {
+    function processCallEndedEvent(evt) {
         if (evt.call.callId === currentCall.callId /*&& botState.getState() === states.INCALL*/) {
             // ipcRenderer.send('relaunch');
             // process.exit(1);
             currentCall = null;
             botState.setState(states.IDLE);
             uiData.status = SPLASH;
-            self.updateUI();
-            motionDetectorIndex = gpioHelper.subscribeToMotionDetection(self.motionChange, GpioHelper.MODE_BOTH);
+            updateUI();
+            motionDetectorIndex = gpioHelper.subscribeToMotionDetection(motionChange, GpioHelper.MODE_BOTH);
         }
     };
 
     /*
      * isItForMe?
      */
-    this.isItForMe = function(command) {
+    function isItForMe(command) {
         logger.info(`Full Command [${command}]`);
         logger.info(`Display Name: [${user.displayName}]`);
         if (command.indexOf('mention') !== -1) {
@@ -410,9 +410,9 @@ let Bot = function(client) {
     /*
      * Process command
      */
-    this.processCommand = function(convId, itemId, command) {
+    function processCommand(convId, itemId, command) {
         logger.info(`[MONAS] Processing command: [${command}]`);
-        let withoutName = self.isItForMe(command);
+        let withoutName = isItForMe(command);
         if (withoutName) {
             if (monitoringConv.convId !== convId) {
                 logger.debug(`[MONAS]: Receive command from convId ${convId} which is not the monitoring conversation. Ignore`);
@@ -423,17 +423,17 @@ let Bot = function(client) {
                 logger.info(`[MONAS] Interpreting command to ${reply} with parms ${JSON.stringify(params)}`);
                 switch (reply) {
                     case 'status':
-                        self.reportStatus(convId, itemId);
+                        reportStatus(convId, itemId);
                         break;
                     case 'version':
-                        self.reportVersion(convId, itemId);
+                        reportVersion(convId, itemId);
                         break;
                     case 'showHelp':
-                        self.showHelp(convId, itemId, params);
+                        showHelp(convId, itemId, params);
                         break;
                     case 'start':
                         let conv = await client.getConversationById(convId);
-                        self.startConference(conv);
+                        startConference(conv);
                         break;
                     case 'stop':
                         currentCall && client.leaveConference(currentCall.callId);
@@ -444,30 +444,30 @@ let Bot = function(client) {
                         botState.setState(states.IDLE);
                         break;
                     case 'dial':
-                        self.dial(convId, itemId, params);
+                        dial(convId, itemId, params);
                         break;
                     case 'getLogs':
-                        self.getLogFile(convId, itemId);
+                        getLogFile(convId, itemId);
                         break;
                     case 'search':
-                        self.searchUsers(convId, itemId, params && params[0], true);
+                        searchUsers(convId, itemId, params && params[0], true);
                         break;
                     case 'switchView':
                         uiData.status = params[0];
-                        self.updateUI();
+                        updateUI();
                         break;
                     case 'openDoor':
-                        self.openDoor(convId, itemId);
+                        openDoor(convId, itemId);
                         break;
                     case 'getTemp':
                         gpioHelper.readTempAndHumidity(function(temp, humidity) {
-                            client.addTextItem(convId, self.buildConversationItem(itemId, null,
+                            client.addTextItem(convId, buildConversationItem(itemId, null,
                                 `Temperature: ${temp}, humidity: ${humidity}`));
                         });
                         break;
                     default:
                         logger.info(`[MONAS] I do not understand [${withoutName}]`);
-                        client.addTextItem(convId, self.buildConversationItem(itemId, null,
+                        client.addTextItem(convId, buildConversationItem(itemId, null,
                             `I do not understand <b>[${withoutName}]</b>`));
                         break;
                 }
@@ -480,14 +480,14 @@ let Bot = function(client) {
     /*
      * Gets Log File
      */
-    this.getLogFile = function(convId, itemId) {
+    function getLogFile(convId, itemId) {
         fs.readFile(config.logFile, 'utf8', function(err, data) {
             if (err) {
                 sendErrorItem(convId, itemId, 'Unable to read log file');
                 return;
             }
             let file = new File([data], config.logFile, {type: 'text/plain'});
-            client.addTextItem(convId, self.buildConversationItem(itemId, 'LOGS', 'Here are my logs', file));
+            client.addTextItem(convId, buildConversationItem(itemId, 'LOGS', 'Here are my logs', file));
         });
         return;
     };
@@ -495,16 +495,16 @@ let Bot = function(client) {
     /*
      * Report bot status
      */
-    this.reportStatus = function(convId, itemId) {
-        client.addTextItem(convId, self.buildConversationItem(itemId, null,
+    function reportStatus(convId, itemId) {
+        client.addTextItem(convId, buildConversationItem(itemId, null,
             `Status <b>${botState.getStateText()}</b>`));
     };
 
     /*
      * Report software versions
      */
-    this.reportVersion = function(convId, itemId) {
-        client.addTextItem(convId, self.buildConversationItem(itemId, null,
+    function reportVersion(convId, itemId) {
+        client.addTextItem(convId, buildConversationItem(itemId, null,
             `App: <b>${packjson.version}</b>, Node: <b>${process.versions.node}</b>, Electron: <b>${process.versions.electron}</b>` +
             `, Chrome: <b>${process.versions.chrome}</b>, v8: <b>${process.versions.v8}</b>`));
     };
@@ -512,17 +512,17 @@ let Bot = function(client) {
     /*
      * Show bot available commands
      */
-    this.showHelp = function(convId, itemId, params) {
+    function showHelp(convId, itemId, params) {
         logger.info('[MONAS] Displaying help...');
         commander.buildHelp(params && params.length && params[0]).then((help) =>
-            client.addTextItem(convId, self.buildConversationItem(itemId, 'HELP', help)));
+            client.addTextItem(convId, buildConversationItem(itemId, 'HELP', help)));
     };
 
     /*
      * Show an error as a conversation item
      */
-    this.sendErrorItem = function(convId, itemId, err) {
-        client.addTextItem(convId, self.buildConversationItem(itemId, 'ERROR', err));
+    sendErrorItem = function(convId, itemId, err) {
+        client.addTextItem(convId, buildConversationItem(itemId, 'ERROR', err));
     };
 
     /**
@@ -537,10 +537,10 @@ let Bot = function(client) {
     /*
      * dial phone number
      */
-    this.dial = async function(convId, itemId, params) {
+    async function dial(convId, itemId, params) {
         if (!params || !params.length) {
             logger.error(`[MONAS] No number to dial`);
-            self.sendErrorItem(convId, itemId, 'Unable to dial. Phone number missing');
+            sendErrorItem(convId, itemId, 'Unable to dial. Phone number missing');
             return;
         }
         try {
@@ -548,7 +548,7 @@ let Bot = function(client) {
             currentCall = await client.dialNumber(params[0], null, {audio: true, video: false});
             botState.setState(states.DIALLING);
         } catch (error) {
-            self.sendErrorItem(convId, itemId, `Error dialing number ${params[0]}. Error: ${error}`);
+            sendErrorItem(convId, itemId, `Error dialing number ${params[0]}. Error: ${error}`);
             logger.error(`[MONAS] Error dialing number ${params[0]}. Error: ${error}`);
         }
     };
@@ -556,7 +556,7 @@ let Bot = function(client) {
     /*
      * Start Circuit Conference
      */
-    this.startConference = async function(conv, callId) {
+    startConference = async function(conv, callId) {
         try {
             let call = await client.findCall(callId);
             if (!call) {
@@ -584,25 +584,16 @@ let Bot = function(client) {
     /*
      * Setup Media
      */
-    this.setupMedia = async function(call) {
+    async function setupMedia(call) {
         if (currentCall) {
-            // let constraints = {audio: true, video: {width: 1280, height: 720}};
-            // let mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
-
-            // For Debugging show on index.html page
-            // videoElement = document.querySelector('video');
-            // videoElement.srcObject = mediaStream;
-            // videoElement.onloadedmetadata = e => videoElement.play();
-
             let remoteStreams = client.getRemoteStreams(call.callId);
             let remoteAudioStream = remoteStreams.find((s) => s.getAudioTracks().length > 0);
             uiElements.audioElement.srcObject = remoteAudioStream;
             if(call.remoteVideoStreams && call.remoteVideoStreams.length) {
                 uiElements.videoElement.srcObject = call.remoteVideoStreams[0].stream;
             }
-            // await client.setAudioVideoStream(call.callId, mediaStream);
             await sleep(2000);
-            self.sendOpenDoorForm(call.convId);
+            sendOpenDoorForm(call.convId);
             await client.unmute(call.callId);
         }
     };
@@ -610,11 +601,11 @@ let Bot = function(client) {
     /*
      * Search Users
      */
-    this.searchUsers = async function(convId, itemId, searchString, test) {
+    async function searchUsers(convId, itemId, searchString, test) {
         if (!searchString || !searchString.length) {
             if (test) {
                 logger.error(`[MONAS] Invalid Syntax`);
-                self.sendErrorItem(convId, itemId, 'Invalid syntax. Sintax: search searchString');
+                sendErrorItem(convId, itemId, 'Invalid syntax. Sintax: search searchString');
             }
             return;
         }
@@ -624,7 +615,7 @@ let Bot = function(client) {
     /*
      * Process Users Search Results
      */
-    this.processSearchResults = async function(data) {
+    async function processSearchResults(data) {
         return new Promise(function(resolve) {
             uiData.searchId = null;
             if (!data || !data.users) {
@@ -655,9 +646,9 @@ let Bot = function(client) {
             legend: `Calling ${user.firstName} ${user.lastName}`
         };
         uiData.status = CALLING;
-        self.updateUI();
+        updateUI();
         if (user.isReceptionist) {
-            self.startConference(receptionConv);
+            startConference(receptionConv);
         } else {
             client.makeCall(user.userId, {audio: true, video: true}, true);
         }
@@ -670,19 +661,19 @@ let Bot = function(client) {
     /*
      * Update User Interface
      */
-    this.updateUI = function() {
+    updateUI = function() {
         switch(uiData.status) {
             case SPLASH:
-                self.showSplash();
+                showSplash();
                 break;
             case USERS:
-                self.showUsers();
+                showUsers();
                 break;
             case CALL:
-                self.showCall();
+                showCall();
                 break;
             case CALLING:
-                self.showCalling();
+                showCalling();
             default:
                 logger.error(`[MONAS] Invalud UI Status: ${uiData.status}`);
                 break;
@@ -690,7 +681,7 @@ let Bot = function(client) {
         return;
     }
 
-    this.showUsers = function () {
+    function showUsers() {
         uiElements.splashLogoStyle.display = 'none';
         uiElements.userSearchStyle.display = 'flex';
         uiElements.callScreenStyle.display = 'none';
@@ -725,13 +716,13 @@ let Bot = function(client) {
         }
     };
 
-    this.showSplash = function () {
+    function showSplash() {
         uiElements.splashLogoStyle.display = 'flex';
         uiElements.userSearchStyle.display = 'none';
         uiElements.callScreenStyle.display = 'none';
     };
 
-    this.showCall = function () {
+    function showCall() {
         uiElements.splashLogoStyle.display = 'none';
         uiElements.userSearchStyle.display = 'none';
         uiElements.callScreenStyle.display = 'flex';
@@ -740,7 +731,7 @@ let Bot = function(client) {
         uiElements.callingUser.legend.style.display = 'none';
     };
 
-    this.showCalling = function () {
+    function showCalling() {
         uiElements.splashLogoStyle.display = 'none';
         uiElements.userSearchStyle.display = 'none';
         uiElements.callScreenStyle.display = 'flex';
@@ -750,7 +741,7 @@ let Bot = function(client) {
         uiElements.callingUser.avatar.style = 'flex';
     };
 
-    this.initUI = function () {
+    function initUI () {
         uiElements.splashLogoStyle = document.querySelector('#splash_logo').style;
         uiElements.userSearchStyle = document.querySelector('#users_section').style;
         uiElements.callScreenStyle = document.querySelector('#call_screen').style;
@@ -779,13 +770,13 @@ let Bot = function(client) {
     };
 
     this.clickKey = function (key) {
-        self.unsubscribeMotionDetectionWhileTyping();
+        unsubscribeMotionDetectionWhileTyping();
         uiElements.searchString.innerHTML += key;
         uiData.searchId = client.startUserSearch(uiElements.searchString.innerHTML);
     };
 
     this.clickEnter = function () {
-        self.unsubscribeMotionDetectionWhileTyping();
+        unsubscribeMotionDetectionWhileTyping();
         if (uiData.searchId) {
             client.cancelSearch(uiData.searchId);
         }
@@ -795,7 +786,7 @@ let Bot = function(client) {
     };
 
     this.clickBS = function () {
-        self.unsubscribeMotionDetectionWhileTyping();
+        unsubscribeMotionDetectionWhileTyping();
         if (uiElements.searchString.innerHTML.length) {
             uiElements.searchString.innerHTML = uiElements.searchString.innerHTML.slice(0, uiElements.searchString.innerHTML.length-1);
         }
@@ -803,11 +794,11 @@ let Bot = function(client) {
             uiData.searchId = client.startUserSearch(uiElements.searchString.innerHTML);
         } else {
             uiData.users = [];
-            self.updateUI();
+            updateUI();
         }
     };
 
-    this.unsubscribeMotionDetectionWhileTyping = function () {
+    function unsubscribeMotionDetectionWhileTyping() {
         gpioHelper.unsubscribeFromMotionDetection(motionDetectorIndex);
         logger.debug('[MONAS]: Unsubscribe motion detection while typing');
         if (uiData.switchViewTimer) {
@@ -819,13 +810,13 @@ let Bot = function(client) {
             motionDetectionDelay = null;
         }
         motionDetectionDelay = setTimeout(function() {
-            motionDetectorIndex = gpioHelper.subscribeToMotionDetection(self.motionChange, GpioHelper.MODE_BOTH);
+            motionDetectorIndex = gpioHelper.subscribeToMotionDetection(motionChange, GpioHelper.MODE_BOTH);
             motionDetectionDelay = null;
-            self.motionChange(GpioHelper.STATUS_OFF);
+            motionChange(GpioHelper.STATUS_OFF);
         }, RESTART_MOTION_DETECTION_TIME);
     };
 
-    this.motionChange = function(status) {
+    function motionChange(status) {
         logger.debug(`[MONAS] Motion detected status ${status}`);
         if (uiData.status === CALL || uiData.status === CALLING) {
             logger.debug(`[MONAS] Ignoring motion change in status ${uiData.status}`);
@@ -841,15 +832,15 @@ let Bot = function(client) {
             uiData.status = (status == GpioHelper.STATUS_OFF ? SPLASH : USERS);
             uiElements.searchString.innerHTML = '';
             uiData.users = [];
-            self.updateUI();
+            updateUI();
         }, (status === GpioHelper.STATUS_OFF ? SWITCH_BACK_TO_SPLASH : SWITCH_TO_USERS_TIME));
     };
 
-    this.openDoor = function(convId, itemId) {
+    function openDoor(convId, itemId) {
         if (!currentCall) {
             let error = 'Attempt to open a door without an active call is not possible';
             logger.warn(`[MONAS] ${error}`);
-            self.sendErrorItem(convId, itemId, error);
+            sendErrorItem(convId, itemId, error);
             return;
         }
         gpioHelper.setBuzzer(GpioHelper.STATUS_ON);
@@ -877,8 +868,8 @@ let Bot = function(client) {
         }, interval || UPDATE_HYGROTERMO_INTERVAL);
     };
 
-    this.sendOpenDoorForm = async function (convId) {
-        const item = await client.addTextItem(convId, {
+    async function sendOpenDoorForm(convId) {
+        await client.addTextItem(convId, {
             content: 'Select "Open Door" or "I do not know this person"',
             form: {
                 id: 'openDoorForm',
@@ -904,9 +895,9 @@ Circuit.logger.setLevel(Circuit.Enums.LogLevel.Debug);
 let bot = new Bot(new Circuit.Client(config.bot));
 bot.logonBot()
     .then(bot.updateUserData)
-    .then(bot.getReceptionConversation)
     .then(bot.startSensors)
     .then(bot.sayHi)
+    .then(bot.getReceptionConversation)
     .catch(bot.terminate);
 
 // Functions invoked from UI
