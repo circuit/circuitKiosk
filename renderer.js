@@ -55,6 +55,7 @@ let Bot = function(client) {
     let motionDetectorIndex;
     let motionDetectionDelay;
     let receptionConv;
+    let monitoringConv;
 
     ipcRenderer.on('relaunch', () => {
         logger.info('[MONAS]: Received relaunch');
@@ -103,7 +104,7 @@ let Bot = function(client) {
         let convId = config.receptionist && config.receptionist.groupConvId;
         if (convId) {
             try {
-                receptionConv = await client.getConversationById(config.convId);
+                receptionConv = await client.getConversationById(convId);
             } catch (error) {
                 logger.error(`[MONAS]: Unable to retrieve receptionist conversation. Error: ${error}`);
             }
@@ -154,14 +155,14 @@ let Bot = function(client) {
     /*
      * getConversation
      */
-    this.getConversation = async function() {
+    async function getMonitoringConversation() {
         let conv;
-        if (config.convId) {
-            logger.info(`[MONAS]: Check if conversation ${config.convId} exists`);
+        if (config.monitoringConvId) {
+            logger.info(`[MONAS]: Check if conversation ${config.monitoringConvId} exists`);
             try {
-                conv = await client.getConversationById(config.convId);
+                conv = await client.getConversationById(config.monitoringConvId);
                 if (conv) {
-                    logger.info(`[MONAS]: conversation ${conv.convId} exists`);
+                    logger.info(`[MONAS]: conversation ${config.monitoringConvId} exists`);
                     return conv;
                 }
             } catch (error) {
@@ -184,8 +185,8 @@ let Bot = function(client) {
             return;
         }
         logger.info('[MONAS]: say hi');
-        let conv = await self.getConversation();
-        client.addTextItem(conv.convId, self.buildConversationItem(null, `Hi from ${user.displayName}`,
+        monitoringConv = await getMonitoringConversation();
+        client.addTextItem(monitoringConv.convId, self.buildConversationItem(null, `Hi from ${user.displayName}`,
             `I am ready. Use "@${user.displayName} help , or ${user.displayName} help, or just //help" to see available commands`));
     };
 
@@ -413,6 +414,10 @@ let Bot = function(client) {
         logger.info(`[MONAS] Processing command: [${command}]`);
         let withoutName = self.isItForMe(command);
         if (withoutName) {
+            if (monitoringConv.convId !== convId) {
+                logger.debug(`[MONAS]: Receive command from convId ${convId} which is not the monitoring conversation. Ignore`);
+                return;
+            }
             logger.info(`[MONAS] Command is for me. Processing [${withoutName}]`);
             commander.processCommand(withoutName, async (reply, params) => {
                 logger.info(`[MONAS] Interpreting command to ${reply} with parms ${JSON.stringify(params)}`);
@@ -901,6 +906,7 @@ bot.logonBot()
     .then(bot.updateUserData)
     .then(bot.getReceptionConversation)
     .then(bot.startSensors)
+    .then(bot.sayHi)
     .catch(bot.terminate);
 
 // Functions invoked from UI

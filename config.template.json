@@ -3,10 +3,17 @@
         "client_id": "your-client-id",
         "client_secret": "your-client-secret",
         "domain": "circuitsandbox.net",
-        "first_name": "bot-first-name",
-        "last_name": "bot-last-name"
+        "first_name": "Office",
+        "last_name": "Reception"
     },
     "botOwnerEmail": "bot-administrator-circuit-email",
-    "convId": "conversation-with-bot-admin-id",
-    "logFile": "relative-or-absolute-path-and-filename"
+    "monitoringConvId": "convid-from-where-bot-accepts-admin-commands",
+    "logFile": "relative-or-absolute-path-and-filename",
+    "receptionist": {
+        "firstName": "Reception",
+        "lastName": "Pam Besley",
+        "smallPicture": "./assets/icons/Pam-Beesly.jpg",
+        "largePicture":  "./assets/icons/Pam-Beesly.jpg",
+        "groupConvId": "convid-with-participants-that-can-play-reception-role"
+    }
 }
