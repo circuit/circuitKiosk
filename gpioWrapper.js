@@ -13,7 +13,7 @@ let STATUS_ON = 1;
 
 let HYGRO_THERMO_GRAPH_SENSOR_TYPE_DHT11 = 11;
 
-//Motion detection modes
+// Motion detection modes
 const MODE_ON_ONLY= 'MODE_ON_ONLY';
 const MODE_OFF_ONLY = 'MODE_OFF_ONLY';
 const MODE_BOTH = 'MODE_BOTH';
@@ -59,13 +59,12 @@ let GpioHelper = function (logger) {
                 mode: mode
             });
             if (!motionSensorTimer) {
-                logger.debug(`[GPIO]: Starting Motion Detection Interval`);
+                logger.debug(`[GPIO] Starting Motion Detection Interval`);
                 motionSensorTimer = setInterval(function () {
                     motionSensor.read(function(error, status) {
-                        //logger.debug(`[GPIO]: Checking Motion Detection: Error ${error} Status ${status}`);
                         if (!error) {
                             if (currentDetectionStatus === null || currentDetectionStatus !== status) {
-                                logger.debug('[GPIO]: Start notifying sbscribers');
+                                logger.debug('[GPIO] Start notifying sbscribers');
                                 notifySubscribersOfMotionDetection(status);
                             }
                             currentDetectionStatus = status;

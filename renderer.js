@@ -58,7 +58,7 @@ let Bot = function(client) {
     let monitoringConv;
 
     ipcRenderer.on('relaunch', () => {
-        logger.info('[MONAS]: Received relaunch');
+        logger.info('[RENDERER] Received relaunch');
         relaunch = true;
     });
 
@@ -77,10 +77,10 @@ let Bot = function(client) {
                     clearInterval(retry);
                     resolve();
                 } catch (error) {
-                    logger.error(`[MONAS]: Error logging Bot. Error: ${error}`);
+                    logger.error(`[RENDERER] Error logging Bot. Error: ${error}`);
                 }
             };
-            logger.info(`[MONAS]: Create bot instance with id: ${config.bot.client_id}`);
+            logger.info(`[RENDERER] Create bot instance with id: ${config.bot.client_id}`);
             retry = setInterval(logon, 2000);
         });
     };
@@ -106,7 +106,7 @@ let Bot = function(client) {
             try {
                 receptionConv = await client.getConversationById(convId);
             } catch (error) {
-                logger.error(`[MONAS]: Unable to retrieve receptionist conversation. Error: ${error}`);
+                logger.error(`[RENDERER] Unable to retrieve receptionist conversation. Error: ${error}`);
             }
         }
         return;
@@ -128,7 +128,7 @@ let Bot = function(client) {
                 user.lastName = config.bot.last_name;
                 user.displayName = `${config.bot.first_name} ${config.bot.last_name}`;
             } catch (error) {
-                logger.error(`[MONAS]: Unable to update user data. Error: ${error}`);
+                logger.error(`[RENDERER] Unable to update user data. Error: ${error}`);
             }
         }
         return user;
@@ -138,7 +138,7 @@ let Bot = function(client) {
      * addEventListeners
      */
     function addEventListeners(client) {
-        logger.info('[MONAS]: addEventListeners');
+        logger.info('[RENDERER] addEventListeners');
         Circuit.supportedEvents.forEach(function(e) {
             client.addEventListener(e, processEvent);
         });
@@ -148,8 +148,8 @@ let Bot = function(client) {
      * logEvent
      */
     function logEvent(evt) {
-        logger.info(`[MONAS]: ${evt.type} event received`);
-        logger.debug(`[MONAS]:`, util.inspect(evt, {showHidden: true, depth: null}));
+        logger.info(`[RENDERER] ${evt.type} event received`);
+        logger.debug(`[RENDERER]`, util.inspect(evt, {showHidden: true, depth: null}));
     };
 
     /*
@@ -158,18 +158,18 @@ let Bot = function(client) {
     async function getMonitoringConversation() {
         let conv;
         if (config.monitoringConvId) {
-            logger.info(`[MONAS]: Check if conversation ${config.monitoringConvId} exists`);
+            logger.info(`[RENDERER] Check if conversation ${config.monitoringConvId} exists`);
             try {
                 conv = await client.getConversationById(config.monitoringConvId);
                 if (conv) {
-                    logger.info(`[MONAS]: conversation ${config.monitoringConvId} exists`);
+                    logger.info(`[RENDERER] conversation ${config.monitoringConvId} exists`);
                     return conv;
                 }
             } catch (error) {
-                logger.error(`[MONAS] Unable to get configured conversation. Error: ${error}`);
+                logger.error(`[RENDERER] Unable to get configured conversation. Error: ${error}`);
             }
         }
-        logger.info('[MONAS]: Conversation not configured or it does not exist. Find direct conv with owner');
+        logger.info('[RENDERER] Conversation not configured or it does not exist. Find direct conv with owner');
         return client.getDirectConversationWithUser(config.botOwnerEmail, true);
     };
 
@@ -181,10 +181,10 @@ let Bot = function(client) {
             botState.setState(states.IDLE);
         }
         if (relaunch) {
-            logger.info('[NOMAS]: Relaunching app. Do not say hi');
+            logger.info('[RENDERER] Relaunching app. Do not say hi');
             return;
         }
-        logger.info('[MONAS]: say hi');
+        logger.info('[RENDERER] say hi');
         monitoringConv = await getMonitoringConversation();
         client.addTextItem(monitoringConv.convId, buildConversationItem(null, `Hi from ${user.displayName}`,
             `I am ready. Use "@${user.displayName} help , or ${user.displayName} help, or just //help" to see available commands`));
@@ -208,7 +208,7 @@ let Bot = function(client) {
      */
     this.terminate = function(err) {
         let error = new Error(err);
-        logger.error(`[MONAS]: bot failed ${error.message}`);
+        logger.error(`[RENDERER] bot failed ${error.message}`);
         logger.error(error.stack);
         process.exit(1);
     };
@@ -241,13 +241,13 @@ let Bot = function(client) {
                 processFormSubmission(evt);
                 break;
             default:
-                logger.info(`[MONAS]: unhandled event ${evt.type}`);
+                logger.info(`[RENDERER] unhandled event ${evt.type}`);
                 break;
         }
     };
 
     processFormSubmission = function(evt) {
-        logger.info(`[NOMAS]: process form submission. ${evt.form.id}`);
+        logger.info(`[RENDERER] process form submission. ${evt.form.id}`);
         evt.form.data.forEach(ctrl => {
             logger.debug(`${ctrl.key}: ${ctrl.value}`);
             switch (ctrl.name) {
@@ -283,7 +283,7 @@ let Bot = function(client) {
      */
     function processItemAddedEvent(evt) {
         if (evt.item.text && evt.item.creatorId !== user.userId) {
-            logger.info(`[MONAS] Received itemAdded event with itemId [${evt.item.itemId}] and content [${evt.item.text.content}]`);
+            logger.info(`[RENDERER] Received itemAdded event with itemId [${evt.item.itemId}] and content [${evt.item.text.content}]`);
             processCommand(evt.item.convId, evt.item.parentItemId || evt.item.itemId, evt.item.text.content);
         }
     };
@@ -295,7 +295,7 @@ let Bot = function(client) {
         if (evt.item.text && evt.item.creatorId !== user.userId) {
             if (evt.item.text.content) {
                 let lastPart = evt.item.text.content.split('<hr/>').pop();
-                logger.info(`[MONAS] Received itemUpdated event with: ${lastPart}`);
+                logger.info(`[RENDERER] Received itemUpdated event with: ${lastPart}`);
                 processCommand(evt.item.convId, evt.item.parentItemId || evt.item.itemId, lastPart);
             }
         }
@@ -305,12 +305,12 @@ let Bot = function(client) {
      * processCallStatusEvent
      */
     async function processCallStatusEvent(evt) {
-        logger.info(`[MONAS]: callStatus event: Reason= ${evt.reason}, State= ${currentCall && currentCall.state} ==> ${evt.call.state}`);
-        logger.info(`[MONAS]: Bot state: ${botState.getStateText()}`);
+        logger.info(`[RENDERER] callStatus event: Reason= ${evt.reason}, State= ${currentCall && currentCall.state} ==> ${evt.call.state}`);
+        logger.info(`[RENDERER] Bot state: ${botState.getStateText()}`);
 
         if (currentCall && currentCall.callId !== evt.call.callId) {
             // Event is not for current call
-            logger.info('[MONAS]: Received event for a different call');
+            logger.info('[RENDERER] Received event for a different call');
             return;
         }
 
@@ -330,12 +330,12 @@ let Bot = function(client) {
                 botState.setState(states.ALERTING);
                 client.getConversationById(evt.call.convId).then((conv) => {
                     conv.participants.forEach((userId) => {
-                        logger.info(`[MONAS] Check is ${userId} is already in the call`);
+                        logger.info(`[RENDERER] Check is ${userId} is already in the call`);
                         if (evt.call.participants.indexOf(userId) === -1 && userId !== user.userId) {
-                            logger.info(`[MONAS] Alerting user with userId ${userId}`);
+                            logger.info(`[RENDERER] Alerting user with userId ${userId}`);
                             client.addParticipantToCall(evt.call.callId, {userId: userId}, true)
-                            .then(() => logger.info(`[MONAS] ${userId} has been alerted that conference is in progress`))
-                            .catch(() => logger.error(`[MONAS] Error adding ${userId} to the conference.`));
+                            .then(() => logger.info(`[RENDERER] ${userId} has been alerted that conference is in progress`))
+                            .catch(() => logger.error(`[RENDERER] Error adding ${userId} to the conference.`));
                         }
                     });
                 });
@@ -347,7 +347,7 @@ let Bot = function(client) {
             uiData.status = CALL;
             updateUI();
         } else {
-            logger.info(`[MONAS] Unhandled call state: ${evt.call.state}`);
+            logger.info(`[RENDERER] Unhandled call state: ${evt.call.state}`);
         }
         currentCall = evt.call;
         // Unsubscribe for motion detection
@@ -364,7 +364,7 @@ let Bot = function(client) {
     async function processCallIncomingEvent(evt) {
         if (currentCall && currentCall.callId !== evt.call.callId) {
             // Event is not for current call
-            logger.info('[MONAS]: Received event for a different call');
+            logger.info('[RENDERER] Received event for a different call');
             return;
         }
 
@@ -411,16 +411,16 @@ let Bot = function(client) {
      * Process command
      */
     function processCommand(convId, itemId, command) {
-        logger.info(`[MONAS] Processing command: [${command}]`);
+        logger.info(`[RENDERER] Processing command: [${command}]`);
         let withoutName = isItForMe(command);
         if (withoutName) {
             if (monitoringConv.convId !== convId) {
-                logger.debug(`[MONAS]: Receive command from convId ${convId} which is not the monitoring conversation. Ignore`);
+                logger.debug(`[RENDERER] Receive command from convId ${convId} which is not the monitoring conversation. Ignore`);
                 return;
             }
-            logger.info(`[MONAS] Command is for me. Processing [${withoutName}]`);
+            logger.info(`[RENDERER] Command is for me. Processing [${withoutName}]`);
             commander.processCommand(withoutName, async (reply, params) => {
-                logger.info(`[MONAS] Interpreting command to ${reply} with parms ${JSON.stringify(params)}`);
+                logger.info(`[RENDERER] Interpreting command to ${reply} with parms ${JSON.stringify(params)}`);
                 switch (reply) {
                     case 'status':
                         reportStatus(convId, itemId);
@@ -466,14 +466,14 @@ let Bot = function(client) {
                         });
                         break;
                     default:
-                        logger.info(`[MONAS] I do not understand [${withoutName}]`);
+                        logger.info(`[RENDERER] I do not understand [${withoutName}]`);
                         client.addTextItem(convId, buildConversationItem(itemId, null,
                             `I do not understand <b>[${withoutName}]</b>`));
                         break;
                 }
             });
         } else {
-            logger.info('[MONAS] Ignoring command: it is not for me');
+            logger.info('[RENDERER] Ignoring command: it is not for me');
         }
     };
 
@@ -513,7 +513,7 @@ let Bot = function(client) {
      * Show bot available commands
      */
     function showHelp(convId, itemId, params) {
-        logger.info('[MONAS] Displaying help...');
+        logger.info('[RENDERER] Displaying help...');
         commander.buildHelp(params && params.length && params[0]).then((help) =>
             client.addTextItem(convId, buildConversationItem(itemId, 'HELP', help)));
     };
@@ -539,17 +539,17 @@ let Bot = function(client) {
      */
     async function dial(convId, itemId, params) {
         if (!params || !params.length) {
-            logger.error(`[MONAS] No number to dial`);
+            logger.error(`[RENDERER] No number to dial`);
             sendErrorItem(convId, itemId, 'Unable to dial. Phone number missing');
             return;
         }
         try {
-            logger.info(`[MONAS] Dialling number ${params[0]}`);
+            logger.info(`[RENDERER] Dialling number ${params[0]}`);
             currentCall = await client.dialNumber(params[0], null, {audio: true, video: false});
             botState.setState(states.DIALLING);
         } catch (error) {
             sendErrorItem(convId, itemId, `Error dialing number ${params[0]}. Error: ${error}`);
-            logger.error(`[MONAS] Error dialing number ${params[0]}. Error: ${error}`);
+            logger.error(`[RENDERER] Error dialing number ${params[0]}. Error: ${error}`);
         }
     };
 
@@ -604,7 +604,7 @@ let Bot = function(client) {
     async function searchUsers(convId, itemId, searchString, test) {
         if (!searchString || !searchString.length) {
             if (test) {
-                logger.error(`[MONAS] Invalid Syntax`);
+                logger.error(`[RENDERER] Invalid Syntax`);
                 sendErrorItem(convId, itemId, 'Invalid syntax. Sintax: search searchString');
             }
             return;
@@ -619,14 +619,14 @@ let Bot = function(client) {
         return new Promise(function(resolve) {
             uiData.searchId = null;
             if (!data || !data.users) {
-                logger.info(`[MONAS] Nothing to do. No search results`);
+                logger.info(`[RENDERER] Nothing to do. No search results`);
                 return;
             }
             uiData.users = [];
             data.users.forEach(async function(userId, index) {
                 client.getUserById(userId).then((user) => {
                     uiData.users.push(user);
-                    logger.info(`[MONAS] User: ${user.firstName} ${user.lastName}`);
+                    logger.info(`[RENDERER] User: ${user.firstName} ${user.lastName}`);
                     if (data.users.length === uiData.users.length) {
                         resolve(uiData.users);
                     }
@@ -640,7 +640,7 @@ let Bot = function(client) {
      */
     this.callUser = function(userIndex) {
         let user = uiData.users[userIndex];
-        logger.info(`[MONAS] Calling user ${user.firstName} ${user.lastName}`);
+        logger.info(`[RENDERER] Calling user ${user.firstName} ${user.lastName}`);
         uiData.callingUser = {
             avatar: user.avatarLarge,
             legend: `Calling ${user.firstName} ${user.lastName}`
@@ -675,7 +675,7 @@ let Bot = function(client) {
             case CALLING:
                 showCalling();
             default:
-                logger.error(`[MONAS] Invalud UI Status: ${uiData.status}`);
+                logger.error(`[RENDERER] Invalud UI Status: ${uiData.status}`);
                 break;
         }
         return;
@@ -800,7 +800,7 @@ let Bot = function(client) {
 
     function unsubscribeMotionDetectionWhileTyping() {
         gpioHelper.unsubscribeFromMotionDetection(motionDetectorIndex);
-        logger.debug('[MONAS]: Unsubscribe motion detection while typing');
+        logger.debug('[RENDERER] Unsubscribe motion detection while typing');
         if (uiData.switchViewTimer) {
             clearTimeout(uiData.switchViewTimer);
             uiData.switchViewTimer = null;
@@ -817,9 +817,9 @@ let Bot = function(client) {
     };
 
     function motionChange(status) {
-        logger.debug(`[MONAS] Motion detected status ${status}`);
+        logger.debug(`[RENDERER] Motion detected status ${status}`);
         if (uiData.status === CALL || uiData.status === CALLING) {
-            logger.debug(`[MONAS] Ignoring motion change in status ${uiData.status}`);
+            logger.debug(`[RENDERER] Ignoring motion change in status ${uiData.status}`);
             return;
         }
         if (uiData.switchViewTimer) {
@@ -839,7 +839,7 @@ let Bot = function(client) {
     function openDoor(convId, itemId) {
         if (!currentCall) {
             let error = 'Attempt to open a door without an active call is not possible';
-            logger.warn(`[MONAS] ${error}`);
+            logger.warn(`[RENDERER] ${error}`);
             sendErrorItem(convId, itemId, error);
             return;
         }
@@ -863,7 +863,7 @@ let Bot = function(client) {
         }
         update();
         setInterval(function () {
-            logger.debug('[MONAS]: Update bottom bar');
+            logger.debug('[RENDERER] Update bottom bar');
             update();
         }, interval || UPDATE_HYGROTERMO_INTERVAL);
     };
