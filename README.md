@@ -1,5 +1,9 @@
 # circuitKiosk
 
+# Always run electron-rebuild after npm install
+
+    ./node_modules/.bin/electron-rebuild .
+
 
 # Enable Raspberry Camera Module to work with getUserMedia
 First run raspi-config and enable the Pi to work with the camera module:
@@ -11,3 +15,9 @@ No enable a module option to improve the camera modules picture quality.
  
     $ echo 'options bcm2835-v4l2 gst_v4l2src_is_broken=1' | sudo tee -a /etc/modprobe.d/bcm2835-v4l2.conf
 	$ echo 'bcm2835-v4l2' | sudo tee -a /etc/modules-load.d/modules.conf
+
+# Speech Detection Dependencies
+SoX
+    sudo apt-get install sox libsox-fmt-all
+
+

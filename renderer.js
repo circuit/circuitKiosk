@@ -8,6 +8,7 @@ const {ipcRenderer} = require('electron');
 const fs = require('fs');
 const Circuit = require('circuit-sdk/circuit.js');
 const GpioHelper = require('./gpioWrapper');
+const GcsHelper = require('./gcsWrapper');
 
 // UI States
 const SPLASH = 'SPLASH';
@@ -48,6 +49,7 @@ let Bot = function(client) {
     let commander = new Commander(logger);
     let gpioHelper = new GpioHelper(logger);
     let botState = new BotState(states.INITIALIZING, logger);
+    let gcsHelper = new GcsHelper(logger);
     let currentCall;
     let user;
     let relaunch;
@@ -71,6 +73,7 @@ let Bot = function(client) {
             addEventListeners(client);
             initUI();
             updateUI();
+            gcsHelper.init(config.gcsKeyFilePathName);
             let logon = async function() {
                 try {
                     user = await client.logon();
@@ -464,6 +467,9 @@ let Bot = function(client) {
                             client.addTextItem(convId, buildConversationItem(itemId, null,
                                 `Temperature: ${temp}, humidity: ${humidity}`));
                         });
+                        break;
+                    case 'speechToText':
+                        gcsHelper.listen();
                         break;
                     default:
                         logger.info(`[RENDERER] I do not understand [${withoutName}]`);

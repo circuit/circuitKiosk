@@ -41,5 +41,10 @@
         "description": "Get Temperature and humidity",
         "command": "getTemp",
         "test": true
+    },
+    "transcribe": {
+        "description": "Test speech to text",
+        "command": "speechToText",
+        "test": true
     }
 }
