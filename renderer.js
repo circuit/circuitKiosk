@@ -58,6 +58,7 @@ let Bot = function(client) {
     let motionDetectionDelay;
     let receptionConv;
     let monitoringConv;
+    let app;
 
     ipcRenderer.on('relaunch', () => {
         logger.info('[RENDERER] Received relaunch');
@@ -748,6 +749,26 @@ let Bot = function(client) {
     };
 
     function initUI () {
+        app = new Vue({
+            el: "#app",
+            methods: {
+                updateBottomBar: function(temp, humidity) {
+                    let date = new Date();
+                    this.date = `${date.getMonth()+1}/${date.getDate()}`;
+                    this.time = `${date.getHours()}:${date.getMinutes()}`;
+                    this.humidity = humidity+'%';
+                    this.temp = temp+'°';
+                }
+            },
+            data: {
+                title: config.office && config.office.title || '(Set office.title in config.json)',
+                date: "",
+                time: "",
+                temp: "",
+                humidity: ""
+            }
+        });
+
         uiElements.splashLogoStyle = document.querySelector('#splash_logo').style;
         uiElements.userSearchStyle = document.querySelector('#users_section').style;
         uiElements.callScreenStyle = document.querySelector('#call_screen').style;
@@ -860,11 +881,7 @@ let Bot = function(client) {
     this.startHygroTermInterval = function (interval) {
         let update = function() {
             gpioHelper.readTempAndHumidity(function(temp, humidity) {
-                uiElements.humidity.innerHTML = `Humidity: ${humidity}%`;
-                uiElements.temperature.innerHTML = `Temperature: ${temp}°`;
-                let date = new Date();
-                uiElements.date.innerHTML = `Date: ${date.getMonth()+1}/${date.getDate()}`;
-                uiElements.time.innerHTML = `Time: ${date.getHours()}:${date.getMinutes()}`;
+                app.updateBottomBar(temp, humidity);
             });
         }
         update();

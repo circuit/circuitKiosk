@@ -7,9 +7,9 @@
   </head>
   <body>
     <audio id="remoteAudio" autoplay></audio>
-    <div class="screen">
+    <div id="app" class="screen">
       <div class="header">
-        <div class="title">ATOS Boca Raton Office</div>
+        <div class="title">{{title}}</div>
       </div>
       <div class="main-content">
         <div class="logo-section" id="splash_logo">
@@ -172,12 +172,13 @@
         </div>
       </div>
       <div class="footer">
-        <div class="date-time-temp" id="date">Date:</div>
-        <div class="date-time-temp" id="time">Time:</div>
-        <div class="date-time-temp" id="temperature">Temperature:</div>
-        <div class="date-time-temp" id="humidity">Humidity:</div>
+        <div class="date-time-temp">Date:<span class="date-time-temp-data">{{date}}</span></div>
+        <div class="date-time-temp">Time:<span class="date-time-temp-data">{{time}}</span></div>
+        <div class="date-time-temp">Temperature:<span class="date-time-temp-data">{{temp}}</span></div>
+        <div class="date-time-temp">Humidity:<span class="date-time-temp-data">{{humidity}}</span></div>
       </div>
     </div>
-  <script type="text/javascript" src="./renderer.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+    <script type="text/javascript" src="./renderer.js"></script>
   </body>
 </html>

@@ -31,12 +31,20 @@ let gcsHelper = function (logger) {
 
     this.init = function(keyFileName) {
         logger.debug('[GCS] Initializing Speech Client.');
+        if (!keyFileName) {
+            logger.error('[GCS] Environment is not setup to use Google Cloud Services. Check README.');
+            return;
+        }
         client = new speech.SpeechClient({
             keyFilename: keyFileName
         });
     };
 
     this.listen = function(listeningTime, options) {
+        if (!client) {
+            logger.error('[GCS] Speech Client has not been initialized.');
+            return;
+        }
         options = options || DEFAULT_OPTIONS;
         listeningTime = listeningTime || DEFAULT_LISTENING_TIME;
         const request = {

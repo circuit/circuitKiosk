@@ -116,6 +116,9 @@
     display: flex;
     width: 25%;
 }
+.date-time-temp-data {
+    margin-left: 5px;
+}
 .logo {
     width: 100%;
     max-height: 80%;
