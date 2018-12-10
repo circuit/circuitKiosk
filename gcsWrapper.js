@@ -49,9 +49,9 @@ let gcsHelper = function (logger) {
         listeningTime = listeningTime || DEFAULT_LISTENING_TIME;
         const request = {
             config: {
-              encoding: options.encoding,
-              sampleRateHertz: options.sampleRateHertz,
-              languageCode: options.languageCode,
+              encoding: options.encoding.default,
+              sampleRateHertz: options.sampleRateHertz.default,
+              languageCode: options.languageCode.default,
             },
             interimResults: false, // If you want interim results, set this to true
         };
@@ -76,8 +76,8 @@ let gcsHelper = function (logger) {
                 sampleRateHertz: options.sampleRateHertz,
                 threshold: 0,
                 // Other options, see https://www.npmjs.com/package/node-record-lpcm16#options
-                verbose: false,
-                recordProgram: 'sox', // Try also "arecord" or "sox"
+                verbose: true,
+                recordProgram: 'rec', // Try also "arecord" or "sox"
                 silence: '10.0',
             })
             .on('error', function(error) {

@@ -17,5 +17,8 @@
         "smallPicture": "./assets/icons/Pam-Beesly.jpg",
         "largePicture":  "./assets/icons/Pam-Beesly.jpg",
         "groupConvId": "convid-with-participants-that-can-play-reception-role"
+    },
+    "office": {
+        "title": "title-to-display-on-the header"
     }
 }
