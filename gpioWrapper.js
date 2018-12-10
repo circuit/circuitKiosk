@@ -1,5 +1,7 @@
 'use strict';
 let Gpio = require('onoff').Gpio; //include onoff to interact with the GPIO
+let fs = require('fs');
+let gpioMock = require('gpio-mock');
 let DHTSensor = require("node-dht-sensor");
 
 //GPIO Definitions
@@ -20,7 +22,7 @@ const MODE_BOTH = 'MODE_BOTH';
 const SENSOR_QUERY_INTERVAL = 100; // 1 sec
 
 
-let GpioHelper = function (logger) {
+let GpioHelper = function (logger, mock) {
     let motionSensor;
     let LED;
     let buzzer;
@@ -30,6 +32,13 @@ let GpioHelper = function (logger) {
     let dht_type = HYGRO_THERMO_GRAPH_SENSOR_TYPE_DHT11;
     let dht_pin = GPIO_PIN_21;
     let self = this;
+
+    if (mock) {
+        logger.debug('[GPIO] It seems we are not running on an actual RPI. Mocking of GPIO shall start');
+        gpioMock.start(function () {
+            logger.debug('[GPIO] GPIO Mocking Started');
+        });
+    }
 
     this.initMotionSensor = function(gpioPin) {
        motionSensor = new Gpio(gpioPin || GPIO_PIN_25, 'in', 'both');
@@ -90,10 +99,15 @@ let GpioHelper = function (logger) {
     };
 
     this.readTempAndHumidity = function (cb, gpioPin, dhtType) {
+        cb = cb || {};
+        if (mock) {
+            cb(25,45);
+            return;
+        }
         DHTSensor.read(dhtType || HYGRO_THERMO_GRAPH_SENSOR_TYPE_DHT11, gpioPin || GPIO_PIN_21, function(err, temp, humidity) {
             if(!err) {
                 console.log(`Temperature: ${temp.toFixed(1)} °C. Humidity: ${humidity.toFixed(1)} %`);
-                cb && cb(temp, humidity);
+                cb(temp, humidity);
             } else {
                 console.log(`Error reading DHT11. Error: ${err}`);
             }

@@ -47,7 +47,7 @@ process.argv.forEach(function(argv, index) {
 let Bot = function(client) {
     let self = this;
     let commander = new Commander(logger);
-    let gpioHelper = new GpioHelper(logger);
+    let gpioHelper = new GpioHelper(logger, config.virtualEnvironment);
     let botState = new BotState(states.INITIALIZING, logger);
     let gcsHelper = new GcsHelper(logger);
     let currentCall;

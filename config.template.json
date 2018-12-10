@@ -6,6 +6,7 @@
         "first_name": "Office",
         "last_name": "Reception"
     },
+    "virtualEnvironment": "set-to-true-only-if-running-raspbian-in-a-virtual-environment",
     "botOwnerEmail": "bot-administrator-circuit-email",
     "monitoringConvId": "convid-from-where-bot-accepts-admin-commands",
     "gcsKeyFilePathName": "path/to/your/google/cloud/key/file/name",

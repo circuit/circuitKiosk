@@ -26,6 +26,7 @@
     "electron": "^3.0.8",
     "electron-log": "^2.2.14",
     "file-api": "^0.10.4",
+    "gpio-mock": "^1.2.0",
     "node-dht-sensor": "0.0.34",
     "node-ipc": "^9.1.1",
     "node-record-lpcm16": "^0.3.1",
