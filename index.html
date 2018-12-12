@@ -12,125 +12,30 @@
         <div class="title">{{title}}</div>
       </div>
       <div class="main-content">
-        <div class="logo-section" id="splash_logo">
-          <img src="./assets/icons/atos-olympic-games-thumbnail.jpg" id="logo" class="logo"></img>
-        </div>
-        <div class="remote-video-section" id="call_screen">
-          <video id="remoteVideo" class="remote-video" autoplay></video>
-          <img class="large-avatar" id="callingUserAvatar"></img>
-          <div class="calling-legend blinking" id="callingUserLegend"></div>
-        </div>
-        <div class="search-users-section" id="users_section">
+        <div class="remote-video-section" v-if="currentView === 'CALL'">
+          <video id="remoteVideo" v-if="currentViewState === 'CALL_ANSWERED'" class="remote-video" autoplay></video>
+          <div v-else="currentViewState === 'CALL_CALLING'">
+            <img class="large-avatar" v-bind:src="callingUser.avatarLarge"></img>
+            <div class="calling-legend blinking">Caliing {{callingUser.firstName}} {{callingUser.lastName}}</div>
+          </div>
+      </div>
+        <div class="search-users-section" v-else-if="currentView === 'USERS'">
           <div class="search-results">
-            <div class="column-wrapper">
-              <ul id="userList" class="users-list">
-                <li class="user-block" onclick="callUser(0)" id="user_0">
-                  <button class="user-data" id="receptionist">
-                    <img class="user-image" id="user_image_0"></img>
-                    <div class="user-name" id="user_name_0"></div>
-                  </button>
-                </li>
-                <li class="user-block" onclick="callUser(1)" id="user_1">
-                  <button class="user-data">
-                    <img class="user-image" id="user_image_1"></img>
-                    <div class="user-name" id="user_name_1"></div>
-                  </button>
-                </li>
-                <li class="user-block" onclick="callUser(2)" id="user_2">
-                  <button class="user-data">
-                    <img class="user-image" id="user_image_2"></img>
-                    <div class="user-name" id="user_name_2"></div>
-                  </button>
-                </li>
-                <li class="user-block" onclick="callUser(3)" id="user_3">
-                  <button class="user-data">
-                    <img class="user-image" id="user_image_3"></img>
-                    <div class="user-name" id="user_name_3"></div>
-                  </button>
-                </li>
-              </ul>
-              <ul id="userList" class="users-list">
-                <li class="user-block" onclick="callUser(4)" id="user_4">
-                  <button class="user-data">
-                    <img class="user-image" id="user_image_4"></img>
-                    <div class="user-name" id="user_name_4"></div>
-                  </button>
-                </li>
-                <li class="user-block" onclick="callUser(5)" id="user_5">
-                  <button class="user-data">
-                    <img class="user-image" id="user_image_5"></img>
-                    <div class="user-name" id="user_name_5"></div>
-                  </button>
-                </li>
-                <li class="user-block" onclick="callUser(6)" id="user_6">
-                  <button class="user-data">
-                    <img class="user-image" id="user_image_6"></img>
-                    <div class="user-name" id="user_name_6"></div>
-                  </button>
-                </li>
-                <li class="user-block" onclick="callUser(7)" id="user_7">
-                  <button class="user-data">
-                    <img class="user-image" id="user_image_7"></img>
-                    <div class="user-name" id="user_name_7"></div>
-                  </button>
-                </li>
-              </ul>
-              <ul id="userList" class="users-list">
-                <li class="user-block" onclick="callUser(8)" id="user_8">
-                  <button class="user-data">
-                    <img class="user-image" id="user_image_8"></img>
-                    <div class="user-name" id="user_name_8"></div>
-                  </button>
-                </li>
-                <li class="user-block" onclick="callUser(9)" id="user_9">
-                  <button class="user-data">
-                    <img class="user-image" id="user_image_9"></img>
-                    <div class="user-name" id="user_name_9"></div>
-                  </button>
-                </li>
-                <li class="user-block" onclick="callUser(10)" id="user_10">
-                  <button class="user-data">
-                    <img class="user-image" id="user_image_10"></img>
-                    <div class="user-name" id="user_name_10"></div>
-                  </button>
-                </li>
-                <li class="user-block" onclick="callUser(11)" id="user_11">
-                  <button class="user-data">
-                    <img class="user-image" id="user_image_11"></img>
-                    <div class="user-name" id="user_name_11"></div>
-                  </button>
-                </li>
-              </ul>
-              <ul id="userList" class="users-list">
-                <li class="user-block" onclick="callUser(12)" id="user_12">
-                  <button class="user-data">
-                    <img class="user-image" id="user_image_12"></img>
-                    <div class="user-name" id="user_name_12"></div>
-                  </button>
-                </li>
-                <li class="user-block" onclick="callUser(13)" id="user_13">
-                  <button class="user-data">
-                    <img class="user-image" id="user_image_13"></img>
-                    <div class="user-name" id="user_name_13"></div>
-                  </button>
-                </li>
-                <li class="user-block" onclick="callUser(14)" id="user_14">
-                  <button class="user-data">
-                    <img class="user-image" id="user_image_14"></img>
-                    <div class="user-name" id="user_name_14"></div>
-                  </button>
-                </li>
-                <li class="user-block" onclick="callUser(15)" id="user_15">
-                  <button class="user-data">
-                    <img class="user-image" id="user_image_15"></img>
-                    <div class="user-name" id="user_name_15"></div>
-                  </button>
-                </li>
-              </ul>
-            </div>
+            <ul id="userList" class="users-list">
+              <button class="user-data" v-on:click="callReceptionist()" v-if="receptionist">
+                <img class="user-image" v-bind:src="receptionist.avatar"></img>
+                <div class="user-name">{{receptionist.firstName}} {{receptionist.lastName}}</div>
+              </button>
+              <li class="user-block" v-for="(user, index) in users">
+                <button class="user-data" v-on:click="callUser(index)">
+                    <img class="user-image" v-bind:src="user.avatar"></img>
+                    <div class="user-name">{{user.firstName}} {{user.lastName}}</div>
+                </button>
+              </li>
+            </ul>
           </div>
           <div class="search-string-wrapper">
-              <div class="search-string" id="search_string"></div>
+              <div class="search-string">{{searchString}}</div>
           </div>
           <div class="keyboard" id="keyboard">
             <div class="keys-line">
@@ -169,6 +74,9 @@
               <button class="key" onclick="clickBS()">BCKSPC</button>
              </div>
           </div>
+        </div>
+        <div class="logo-section" v-else>
+          <img src="./assets/icons/atos-olympic-games-thumbnail.jpg" class="logo"></img>
         </div>
       </div>
       <div class="footer">

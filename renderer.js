@@ -10,11 +10,14 @@ const Circuit = require('circuit-sdk/circuit.js');
 const GpioHelper = require('./gpioWrapper');
 const GcsHelper = require('./gcsWrapper');
 
-// UI States
+// UI Views
 const SPLASH = 'SPLASH';
 const USERS = 'USERS';
 const CALL = 'CALL';
-const CALLING = 'CALLING';
+
+// UI Views States
+const CALL_CALLING = 'CALL_CALLING';
+const CALL_ANSWERED = 'CALL_ANSWERED';
 
 // Max Users that can be display on the screen
 const MAX_USERS = 16;
@@ -32,14 +35,6 @@ const TIME_DETECTION_START_DELAY = 10000; // 10 seconds
 // Time after last typing before starting motion detection again
 const RESTART_MOTION_DETECTION_TIME = 10000; // 10 seconds
 
-let uiData = {
-    status: SPLASH,
-    users: [],
-    searchId: null,
-    receptionist: config.receptionist,
-    switchViewTimer: null
-};
-
 process.argv.forEach(function(argv, index) {
     logger.info(`argv[${index}]: ${argv}`);
 });
@@ -52,18 +47,12 @@ let Bot = function(client) {
     let gcsHelper = new GcsHelper(logger);
     let currentCall;
     let user;
-    let relaunch;
-    let uiElements = {};
     let motionDetectorIndex;
     let motionDetectionDelay;
-    let receptionConv;
     let monitoringConv;
     let app;
-
-    ipcRenderer.on('relaunch', () => {
-        logger.info('[RENDERER] Received relaunch');
-        relaunch = true;
-    });
+    let searchId;
+    let switchViewTimer;
 
     /*
      * Logon Client
@@ -72,9 +61,10 @@ let Bot = function(client) {
         return new Promise((resolve) => {
             let retry;
             addEventListeners(client);
-            initUI();
-            updateUI();
-            gcsHelper.init(config.gcsKeyFilePathName);
+            initUI(callUser);
+            if (config.gcsKeyFilePathName) {
+                gcsHelper.init(config.gcsKeyFilePathName);
+            }
             let logon = async function() {
                 try {
                     user = await client.logon();
@@ -184,10 +174,6 @@ let Bot = function(client) {
         if (botState.getState() === states.INITIALIZING) {
             botState.setState(states.IDLE);
         }
-        if (relaunch) {
-            logger.info('[RENDERER] Relaunching app. Do not say hi');
-            return;
-        }
         logger.info('[RENDERER] say hi');
         monitoringConv = await getMonitoringConversation();
         client.addTextItem(monitoringConv.convId, buildConversationItem(null, `Hi from ${user.displayName}`,
@@ -239,7 +225,9 @@ let Bot = function(client) {
                 processCallIncomingEvent(evt);
                 break;
             case 'basicSearchResults':
-                processSearchResults(evt.data).then(updateUI);
+                processSearchResults(evt.data).then(users => {
+                    app.setUsers(users);
+                });
                 break;
             case 'formSubmission':
                 processFormSubmission(evt);
@@ -347,9 +335,8 @@ let Bot = function(client) {
         } else if (currentCall.state !== 'Active' && evt.call.state === 'Active') {
             // At least two participants. Me and someelse. Setup Media.
             setupMedia(evt.call);
+            app.setCurrentView(CALL, CALL_ANSWERED);
             botState.setState(states.INCALL);
-            uiData.status = CALL;
-            updateUI();
         } else {
             logger.info(`[RENDERER] Unhandled call state: ${evt.call.state}`);
         }
@@ -357,8 +344,8 @@ let Bot = function(client) {
         // Unsubscribe for motion detection
         gpioHelper.unsubscribeFromMotionDetection(motionDetectorIndex);
         motionDetectorIndex = null;
-        if (uiData.switchViewTimer) {
-            clearTimeout(uiData.switchViewTimer);
+        if (switchViewTimer) {
+            clearTimeout(switchViewTimer);
         }
     };
 
@@ -384,13 +371,10 @@ let Bot = function(client) {
      * processCallEndedEvent
      */
     function processCallEndedEvent(evt) {
-        if (evt.call.callId === currentCall.callId /*&& botState.getState() === states.INCALL*/) {
-            // ipcRenderer.send('relaunch');
-            // process.exit(1);
+        if (evt.call.callId === currentCall.callId) {
             currentCall = null;
             botState.setState(states.IDLE);
-            uiData.status = SPLASH;
-            updateUI();
+            app.setCurrentView(SPLASH);
             motionDetectorIndex = gpioHelper.subscribeToMotionDetection(motionChange, GpioHelper.MODE_BOTH);
         }
     };
@@ -457,8 +441,7 @@ let Bot = function(client) {
                         searchUsers(convId, itemId, params && params[0], true);
                         break;
                     case 'switchView':
-                        uiData.status = params[0];
-                        updateUI();
+                        app.setCurrentView(params[0], params[1]);
                         break;
                     case 'openDoor':
                         openDoor(convId, itemId);
@@ -595,9 +578,11 @@ let Bot = function(client) {
         if (currentCall) {
             let remoteStreams = client.getRemoteStreams(call.callId);
             let remoteAudioStream = remoteStreams.find((s) => s.getAudioTracks().length > 0);
-            uiElements.audioElement.srcObject = remoteAudioStream;
+            app.setAudioSource(remoteAudioStream);
+            //uiElements.audioElement.srcObject = remoteAudioStream;
             if(call.remoteVideoStreams && call.remoteVideoStreams.length) {
-                uiElements.videoElement.srcObject = call.remoteVideoStreams[0].stream;
+                app.setVideoSource(call.remoteVideoStreams[0].stream);
+                //uiElements.videoElement.srcObject = call.remoteVideoStreams[0].stream;
             }
             await sleep(2000);
             sendOpenDoorForm(call.convId);
@@ -616,7 +601,7 @@ let Bot = function(client) {
             }
             return;
         }
-        uiData.searchId = client.startUserSearch(searchString);
+        searchId = client.startUserSearch(searchString);
     };
 
     /*
@@ -624,131 +609,44 @@ let Bot = function(client) {
      */
     async function processSearchResults(data) {
         return new Promise(function(resolve) {
-            uiData.searchId = null;
+            let users = [];
+            searchId = null;
             if (!data || !data.users) {
                 logger.info(`[RENDERER] Nothing to do. No search results`);
+                resolve(users);
                 return;
             }
-            uiData.users = [];
             data.users.forEach(async function(userId, index) {
                 client.getUserById(userId).then((user) => {
-                    uiData.users.push(user);
+                    users.push(user);
                     logger.info(`[RENDERER] User: ${user.firstName} ${user.lastName}`);
-                    if (data.users.length === uiData.users.length) {
-                        resolve(uiData.users);
+                    if (data.users.length === users.length) {
+                        resolve(users);
                     }
                 });
             });
         });
     };
 
-    /*
-     * Calls individual user
-     */
-    this.callUser = function(userIndex) {
-        let user = uiData.users[userIndex];
-        logger.info(`[RENDERER] Calling user ${user.firstName} ${user.lastName}`);
-        uiData.callingUser = {
-            avatar: user.avatarLarge,
-            legend: `Calling ${user.firstName} ${user.lastName}`
-        };
-        uiData.status = CALLING;
-        updateUI();
-        if (user.isReceptionist) {
-            startConference(receptionConv);
+    function callUser(user) {
+        logger.info(`[RENDERER] Calling ${user.firstName} ${user.lastName}`);
+        if (user.groupConvId) {
+            client.getConversationById(user.groupConvId)
+                .then(conv => startConference(conv))
+                .catch(error => {
+                    logger.error(`[RENDERED] Error getting conversation by id. Error: ${error}`);
+                    app.setCurrentView(SPLASH);
+                });
         } else {
             client.makeCall(user.userId, {audio: true, video: true}, true);
         }
-        uiElements.searchString.innerHTML = '';
-        uiData.users = [];
+        app.setUsers([]);
+        app.resetSearchData();
         gpioHelper.unsubscribeFromMotionDetection(motionDetectorIndex);
         motionDetectorIndex = null;
     }
 
-    /*
-     * Update User Interface
-     */
-    updateUI = function() {
-        switch(uiData.status) {
-            case SPLASH:
-                showSplash();
-                break;
-            case USERS:
-                showUsers();
-                break;
-            case CALL:
-                showCall();
-                break;
-            case CALLING:
-                showCalling();
-            default:
-                logger.error(`[RENDERER] Invalud UI Status: ${uiData.status}`);
-                break;
-        }
-        return;
-    }
-
-    function showUsers() {
-        uiElements.splashLogoStyle.display = 'none';
-        uiElements.userSearchStyle.display = 'flex';
-        uiElements.callScreenStyle.display = 'none';
-        uiData.users = uiData.users || [];
-        if (uiData.receptionist && uiData.receptionist.groupConvId && receptionConv) {
-            if (uiData.users.length == 0 || !uiData.users[0].isReceptionist) {
-                uiData.users.unshift({
-                    firstName: uiData.receptionist.firstName,
-                    lastName: uiData.receptionist.lastName,
-                    avatar: uiData.receptionist.smallPicture,
-                    avatarLarge: uiData.receptionist.largePicture,
-                    userId: uiData.receptionist.groupConvId,
-                    isGroupCall: uiData.receptionist.groupConvId,
-                    isReceptionist: true
-                });
-            }
-        }
-        uiData.users.forEach(function (user, index) {
-            if (index < MAX_USERS) {
-                uiElements.usersUI[index].style.display = 'inline-block';
-                uiElements.usersUI[index].text.innerHTML = `${user.firstName} ${user.lastName}`;
-                uiElements.usersUI[index].avatar.src = user.avatar;
-                if (user.isReceptionist) {
-                    document.querySelector('#receptionist').style.backgroundColor = '#FF0000';
-                }
-            }
-        });
-        if (uiData.users.length < MAX_USERS) {
-            for(let i = uiData.users.length; i < MAX_USERS; i++) {
-                uiElements.usersUI[i].style.display = 'none';
-            }            
-        }
-    };
-
-    function showSplash() {
-        uiElements.splashLogoStyle.display = 'flex';
-        uiElements.userSearchStyle.display = 'none';
-        uiElements.callScreenStyle.display = 'none';
-    };
-
-    function showCall() {
-        uiElements.splashLogoStyle.display = 'none';
-        uiElements.userSearchStyle.display = 'none';
-        uiElements.callScreenStyle.display = 'flex';
-        uiElements.videoElement.style.display = 'flex';
-        uiElements.callingUser.avatar.style.display = 'none';
-        uiElements.callingUser.legend.style.display = 'none';
-    };
-
-    function showCalling() {
-        uiElements.splashLogoStyle.display = 'none';
-        uiElements.userSearchStyle.display = 'none';
-        uiElements.callScreenStyle.display = 'flex';
-        uiElements.videoElement.style.display = 'none';
-        uiElements.callingUser.avatar.src = uiData.callingUser.avatar;
-        uiElements.callingUser.legend.innerHTML = uiData.callingUser.legend;
-        uiElements.callingUser.avatar.style = 'flex';
-    };
-
-    function initUI () {
+    function initUI (callUserCb) {
         app = new Vue({
             el: "#app",
             methods: {
@@ -758,79 +656,105 @@ let Bot = function(client) {
                     this.time = `${date.getHours()}:${date.getMinutes()}`;
                     this.humidity = humidity+'%';
                     this.temp = temp+'°';
+                },
+                setCurrentView: function(view, state) {
+                    this.currentView = view || SPLASH;
+                    this.currentViewState = state || ""
+                },
+                setUsers: function(users) {
+                    this.users = users || [];
+                },
+                setCallingUser: function(user) {
+                    this.callingUser = user || {}
+                },
+                callUser: function(userIndex) {
+                    this.callingUser = userIndex && this.users[userIndex] || {};
+                    this.setCurrentView(CALL, CALL_CALLING);
+                    this.callUserCb(this.callingUser);
+                },
+                callReceptionist: function() {
+                    this.callingUser = this.receptionist;
+                    this.setCurrentView(CALL, CALL_CALLING);
+                    this.callUserCb(this.callingUser);
+                },
+                addCharToSearchString: function(char) {
+                    this.searchString = this.searchString+char;
+                },
+                removeLastCharFromSearchString: function() {
+                    if (this.searchString.length) {
+                        this.searchString = this.searchString.slice(0, this.searchString.length-1);
+                    }
+                },
+                resetSearchData: function () {
+                    this.users = [];
+                    this.searchString = '';
+                },
+                setAudioSource: function (source) {
+                    this.audioElement.srcObject = source;
+                },
+                setVideoSource: function (source) {
+                    this.videoElement.srcObject = source;
                 }
             },
             data: {
                 title: config.office && config.office.title || '(Set office.title in config.json)',
-                date: "",
-                time: "",
-                temp: "",
-                humidity: ""
+                currentView: SPLASH,
+                currentViewState: '',
+                date: '',
+                time: '',
+                temp: '',
+                humidity: '',
+                users: [],
+                callingUser: {},
+                callUserCb: callUserCb || {},
+                searchString: '',
+                receptionist: config.receptionist || {},
+                audioElement: document.querySelector('audio'),
+                videoElement: document.querySelector('video')
             }
         });
-
-        uiElements.splashLogoStyle = document.querySelector('#splash_logo').style;
-        uiElements.userSearchStyle = document.querySelector('#users_section').style;
-        uiElements.callScreenStyle = document.querySelector('#call_screen').style;
-        uiElements.usersUI = [];
-        for (let i = 0; i < MAX_USERS; i++) {
-            let uiUser = {
-                style: document.querySelector(`#user_${i}`).style,
-                text: document.querySelector(`#user_name_${i}`),
-                avatar: document.querySelector(`#user_image_${i}`),
-            }
-            uiElements.usersUI.push(uiUser);
-        }
-        uiElements.searchString = document.querySelector('#search_string');
-        uiElements.videoElement = document.querySelector('video');
-        uiElements.audioElement = document.querySelector('audio');
-        uiElements.callingUser = {
-            avatar: document.querySelector(`#callingUserAvatar`),
-            legend: document.querySelector(`#callingUserLegend`)
-        };
-        uiElements.callingUserStype = document.querySelector('#calling');
-        uiElements.date = document.querySelector('#date');
-        uiElements.time = document.querySelector('#time');
-        uiElements.temperature = document.querySelector('#temperature');
-        uiElements.humidity = document.querySelector('#humidity');
-
+        return;
     };
 
     this.clickKey = function (key) {
         unsubscribeMotionDetectionWhileTyping();
-        uiElements.searchString.innerHTML += key;
-        uiData.searchId = client.startUserSearch(uiElements.searchString.innerHTML);
+        if (searchId) {
+            client.cancelSearch(searchId);
+        }
+        app.addCharToSearchString(key);
+        searchId = client.startUserSearch(app.searchString);
     };
 
     this.clickEnter = function () {
         unsubscribeMotionDetectionWhileTyping();
-        if (uiData.searchId) {
-            client.cancelSearch(uiData.searchId);
+        if (searchId) {
+            client.cancelSearch(searchId);
         }
-        if (uiElements.searchString.innerHTML) {
-            uiData.searchId = client.startUserSearch(uiElements.searchString.innerHTML);
+        if (app.searchString) {
+            searchId = client.startUserSearch(app.searchString);
         }
     };
 
     this.clickBS = function () {
         unsubscribeMotionDetectionWhileTyping();
-        if (uiElements.searchString.innerHTML.length) {
-            uiElements.searchString.innerHTML = uiElements.searchString.innerHTML.slice(0, uiElements.searchString.innerHTML.length-1);
+        if (searchId) {
+            client.cancelSearch(searchId);
         }
-        if (uiElements.searchString.innerHTML) {
-            uiData.searchId = client.startUserSearch(uiElements.searchString.innerHTML);
+        app.removeLastCharFromSearchString();
+        if (app.searchString) {
+            searchId = client.startUserSearch(app.searchString);
         } else {
-            uiData.users = [];
-            updateUI();
+            app.setUsers([]);
         }
+        return;
     };
 
     function unsubscribeMotionDetectionWhileTyping() {
         gpioHelper.unsubscribeFromMotionDetection(motionDetectorIndex);
         logger.debug('[RENDERER] Unsubscribe motion detection while typing');
-        if (uiData.switchViewTimer) {
-            clearTimeout(uiData.switchViewTimer);
-            uiData.switchViewTimer = null;
+        if (switchViewTimer) {
+            clearTimeout(switchViewTimer);
+            switchViewTimer = null;
         }
         if (motionDetectionDelay) {
             clearTimeout(motionDetectionDelay);
@@ -845,21 +769,19 @@ let Bot = function(client) {
 
     function motionChange(status) {
         logger.debug(`[RENDERER] Motion detected status ${status}`);
-        if (uiData.status === CALL || uiData.status === CALLING) {
-            logger.debug(`[RENDERER] Ignoring motion change in status ${uiData.status}`);
+        if (app.currentView === CALL) {
+            logger.debug(`[RENDERER] Ignoring motion change in status ${app.currentView}`);
             return;
         }
-        if (uiData.switchViewTimer) {
-            clearTimeout(uiData.switchViewTimer);
+        if (switchViewTimer) {
+            clearTimeout(switchViewTimer);
         }
-        uiData.switchViewTimer = setTimeout(function () {
-            if (uiData.status === USERS && status === GpioHelper.STATUS_ON) {
+        switchViewTimer = setTimeout(function () {
+            if (app.currentView === USERS && status === GpioHelper.STATUS_ON) {
                 return;
             }
-            uiData.status = (status == GpioHelper.STATUS_OFF ? SPLASH : USERS);
-            uiElements.searchString.innerHTML = '';
-            uiData.users = [];
-            updateUI();
+            app.setCurrentView(status == GpioHelper.STATUS_OFF ? SPLASH : USERS);
+            app.setUsers([]);
         }, (status === GpioHelper.STATUS_OFF ? SWITCH_BACK_TO_SPLASH : SWITCH_TO_USERS_TIME));
     };
 
@@ -924,7 +846,6 @@ bot.logonBot()
     .catch(bot.terminate);
 
 // Functions invoked from UI
-let callUser = bot.callUser;
 let clickKey = bot.clickKey;
 let clickEnter = bot.clickEnter;
 let clickBS = bot.clickBS;

@@ -14,8 +14,8 @@
     "receptionist": {
         "firstName": "Reception",
         "lastName": "Pam Besley",
-        "smallPicture": "./assets/icons/Pam-Beesly.jpg",
-        "largePicture":  "./assets/icons/Pam-Beesly.jpg",
+        "avatar": "./assets/icons/Pam-Beesly.jpg",
+        "avatarLarge": "./assets/icons/Pam-Beesly.jpg",
         "groupConvId": "convid-with-participants-that-can-play-reception-role"
     },
     "office": {

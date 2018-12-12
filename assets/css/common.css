@@ -75,6 +75,7 @@
     padding-left:  5px;
     margin-top: 0;
     margin-bottom: 0;
+    flex-wrap: wrap;
 }
 .column-wrapper {
     display: flex;

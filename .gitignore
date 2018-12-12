@@ -1,5 +1,7 @@
 # Virtual environment
 sys
+# VSC Config
+jsconfig.json
 # Logs
 logs
 *.log
