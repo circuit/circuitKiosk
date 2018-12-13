@@ -4,10 +4,11 @@
     <meta charset="UTF-8">
     <link rel="stylesheet" href="assets/css/common.css">
     <title>Circuit Reception Kiosk</title>
+    <style>[v-cloak] {display: none; }</style>
   </head>
   <body>
     <audio id="remoteAudio" autoplay></audio>
-    <div id="app" class="screen">
+    <div id="app" class="screen" v-cloak>
       <div class="header">
         <div class="title">{{title}}</div>
       </div>

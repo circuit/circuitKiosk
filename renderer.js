@@ -334,8 +334,8 @@ let Bot = function(client) {
             }
         } else if (currentCall.state !== 'Active' && evt.call.state === 'Active') {
             // At least two participants. Me and someelse. Setup Media.
-            setupMedia(evt.call);
             app.setCurrentView(CALL, CALL_ANSWERED);
+            setupMedia(evt.call);
             botState.setState(states.INCALL);
         } else {
             logger.info(`[RENDERER] Unhandled call state: ${evt.call.state}`);
@@ -579,14 +579,16 @@ let Bot = function(client) {
             let remoteStreams = client.getRemoteStreams(call.callId);
             let remoteAudioStream = remoteStreams.find((s) => s.getAudioTracks().length > 0);
             app.setAudioSource(remoteAudioStream);
-            //uiElements.audioElement.srcObject = remoteAudioStream;
             if(call.remoteVideoStreams && call.remoteVideoStreams.length) {
-                app.setVideoSource(call.remoteVideoStreams[0].stream);
+                Vue.nextTick().then(() => {
+                    app.setVideoSource(call.remoteVideoStreams[0].stream);
+                });
+                //document.querySelector('video').srcObject = call.remoteVideoStreams[0].stream;
                 //uiElements.videoElement.srcObject = call.remoteVideoStreams[0].stream;
             }
             await sleep(2000);
             sendOpenDoorForm(call.convId);
-            await client.unmute(call.callId);
+            //await client.unmute(call.callId);
         }
     };
 
@@ -660,6 +662,7 @@ let Bot = function(client) {
                 setCurrentView: function(view, state) {
                     this.currentView = view || SPLASH;
                     this.currentViewState = state || ""
+                    this.$forceUpdate();
                 },
                 setUsers: function(users) {
                     this.users = users || [];
@@ -693,7 +696,7 @@ let Bot = function(client) {
                     this.audioElement.srcObject = source;
                 },
                 setVideoSource: function (source) {
-                    this.videoElement.srcObject = source;
+                    document.querySelector('video').srcObject = source;
                 }
             },
             data: {
@@ -709,8 +712,7 @@ let Bot = function(client) {
                 callUserCb: callUserCb || {},
                 searchString: '',
                 receptionist: config.receptionist || {},
-                audioElement: document.querySelector('audio'),
-                videoElement: document.querySelector('video')
+                audioElement: document.querySelector('audio')
             }
         });
         return;
