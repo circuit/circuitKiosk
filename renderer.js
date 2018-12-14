@@ -124,6 +124,7 @@ let Bot = function(client) {
         Circuit.supportedEvents.forEach(function(e) {
             client.addEventListener(e, processEvent);
         });
+        client.addEventListener('searchStatus', processEvent);
     };
 
     /*
@@ -219,6 +220,13 @@ let Bot = function(client) {
                 break;
             case 'formSubmission':
                 processFormSubmission(evt);
+                break;
+            case 'searchStatus':
+                processSearchStatus(evt.data).then(users => {
+                    if (users) {
+                        app.setUsers(users);
+                    }
+                });
                 break;
             default:
                 logger.info(`[RENDERER] unhandled event ${evt.type}`);
@@ -592,7 +600,7 @@ let Bot = function(client) {
     /*
      * Process Users Search Results
      */
-    async function processSearchResults(data) {
+    function processSearchResults(data) {
         return new Promise(function(resolve) {
             let users = [];
             searchId = null;
@@ -612,6 +620,16 @@ let Bot = function(client) {
             });
         });
     };
+
+    function processSearchStatus(data) {
+        return new Promise(function(resolve) {
+            if (data && data.status === 'NO_RESULT') {
+                resolve([]);
+                return;
+            }
+            resolve();
+        });
+    }
 
     function onCallUser(user) {
         logger.info(`[RENDERER] Calling ${user.firstName} ${user.lastName}`);
