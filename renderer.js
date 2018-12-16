@@ -23,6 +23,8 @@ const DOOR_UNLOCK_TIME = 2000; // 2 seconds
 const UPDATE_HYGROTERMO_INTERVAL = 30000; // 30 seconds
 // Time before starting motion detection
 const RESTART_MOTION_DETECTION_DELAY = 10000; // 10 seconds
+// Listening time
+const LISTENING_TIME = 4000; // 4 seconds
 
 process.argv.forEach(function(argv, index) {
     logger.info(`argv[${index}]: ${argv}`);
@@ -36,7 +38,6 @@ let Bot = function(client) {
     let gcsHelper = new GcsHelper(logger);
     let user;
     let motionDetectorIndex;
-    let motionDetectionDelay;
     let monitoringConv;
     let app;
     let searchId;
@@ -52,6 +53,7 @@ let Bot = function(client) {
             initUI(onCallUser, onSearchStringUpdated);
             if (config.gcsKeyFilePathName) {
                 gcsHelper.init(config.gcsKeyFilePathName);
+                app.setOnTranscriptionStarted(startTranscription);
             }
             let logon = async function() {
                 try {
@@ -80,18 +82,6 @@ let Bot = function(client) {
             self.startHygroTermInterval();
             resolve();
         });
-    };
-
-    this.getReceptionConversation = async function() {
-        let convId = config.receptionist && config.receptionist.groupConvId;
-        if (convId) {
-            try {
-                receptionConv = await client.getConversationById(convId);
-            } catch (error) {
-                logger.error(`[RENDERER] Unable to retrieve receptionist conversation. Error: ${error}`);
-            }
-        }
-        return;
     };
 
     /*
@@ -597,6 +587,26 @@ let Bot = function(client) {
         searchId = client.startUserSearch(searchString);
     };
 
+    function startTranscription(appCallback) {
+        let timeout = setTimeout(function () {
+            logger.debug('[RENDERER] No transciption or error');
+            appCallback('');
+        }, LISTENING_TIME * 2);
+        gcsHelper.listen(LISTENING_TIME, {
+            "speechContexts": config.gcsSpeechContexts
+        })
+        .then(transcript => {
+            clearTimeout(timeout);
+            appCallback(transcript)
+        })
+        .catch(error => {
+            logger.error(`Error during transcription: ${error}`);
+            clearTimeout(timeout);
+            appCallback('');
+        });
+        
+    };
+
     /*
      * Process Users Search Results
      */
@@ -648,7 +658,7 @@ let Bot = function(client) {
         motionDetectorIndex = null;
     }
 
-    function initUI (onCallUserCb, onSearchStringUpdated) {
+    function initUI (onCallUserCb, onSearchStringUpdated, onTranscriptionStarted) {
         app = new Vue({
             el: "#app",
             methods: {
@@ -669,7 +679,7 @@ let Bot = function(client) {
                     this.callingUser = user || {}
                 },
                 callUser: function(userIndex) {
-                    this.callingUser = userIndex && this.users[userIndex] || {};
+                    this.callingUser = this.users[userIndex] || {};
                     this.onCallUserCb(this.callingUser);
                 },
                 callReceptionist: function() {
@@ -705,6 +715,20 @@ let Bot = function(client) {
                 },
                 tooManyUsers: function () {
                     return this.users.length + (this.receptionist ? 1 : 0) >= 20;
+                },
+                setOnTranscriptionStarted: function (onTranscriptionStarted) {
+                    this.onTranscriptionStarted = onTranscriptionStarted;
+                    return;
+                },
+                transcribe: function () {
+                    let self = this;
+                    this.speechToTextText = 'Recording'
+                    this.onTranscriptionStarted && this.onTranscriptionStarted(function(transcription) {
+                        self.searchString = transcription;
+                        onSearchStringUpdated(self.searchString);
+                        self.speechToTextText = 'Tap to say the name';
+                    });
+                    return;
                 }
             },
             data: {
@@ -722,6 +746,8 @@ let Bot = function(client) {
                 userPresent: false,
                 currentCall: undefined,
                 onSearchStringUpdated: onSearchStringUpdated || {},
+                onTranscriptionStarted: onTranscriptionStarted,
+                speechToTextText: 'Tap to say the name'
             }
         });
         return;
@@ -804,5 +830,4 @@ bot.logonBot()
     .then(bot.updateUserData)
     .then(bot.startSensors)
     .then(bot.sayHi)
-    .then(bot.getReceptionConversation)
     .catch(bot.terminate);

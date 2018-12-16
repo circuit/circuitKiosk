@@ -25,6 +25,7 @@
     "circuit-sdk": "^1.2.4700",
     "electron": "^3.0.8",
     "electron-log": "^2.2.14",
+    "extend": "^3.0.2",
     "file-api": "^0.10.4",
     "gpio-mock": "^1.2.0",
     "node-dht-sensor": "0.0.34",

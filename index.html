@@ -17,7 +17,7 @@
           <video id="remoteVideo" v-if="currentCall.state === 'Active'" class="remote-video" autoplay></video>
           <div v-else>
             <img class="large-avatar" v-bind:src="callingUser.avatarLarge"></img>
-            <div class="calling-legend blinking">Caliing {{callingUser.firstName}} {{callingUser.lastName}}</div>
+            <div class="calling-legend blinking">Calling {{callingUser.firstName}} {{callingUser.lastName}}</div>
           </div>
         </div>
         <div class="search-users-section" v-else-if="userPresent">
@@ -35,47 +35,53 @@
               </li>
             </ul>
           </div>
-          <div class="search-results-legend" v-if="tooManyUsers()">Too many result. Please refine your search</div>
+          <div class="search-results-legend" v-if="tooManyUsers()">Too many results. Please refine your search.</div>
           <div class="search-string-wrapper">
               <div class="search-string">{{searchString}}</div>
           </div>
-          <div class="keyboard" id="keyboard">
-            <div class="keys-line">
-              <button class="key" v-on:click="tapKey('Q')">Q</button>
-              <button class="key" v-on:click="tapKey('W')">W</button>
-              <button class="key" v-on:click="tapKey('E')">E</button>
-              <button class="key" v-on:click="tapKey('R')">R</button>
-              <button class="key" v-on:click="tapKey('T')">T</button>
-              <button class="key" v-on:click="tapKey('Y')">Y</button>
-              <button class="key" v-on:click="tapKey('U')">U</button>
-              <button class="key" v-on:click="tapKey('I')">I</button>
-              <button class="key" v-on:click="tapKey('O')">O</button>
-              <button class="key" v-on:click="tapKey('P')">P</button>
+          <div class="input-row">
+            <div class="keyboard" id="keyboard">
+              <div class="keys-line">
+                <button class="key" v-on:click="tapKey('Q')">Q</button>
+                <button class="key" v-on:click="tapKey('W')">W</button>
+                <button class="key" v-on:click="tapKey('E')">E</button>
+                <button class="key" v-on:click="tapKey('R')">R</button>
+                <button class="key" v-on:click="tapKey('T')">T</button>
+                <button class="key" v-on:click="tapKey('Y')">Y</button>
+                <button class="key" v-on:click="tapKey('U')">U</button>
+                <button class="key" v-on:click="tapKey('I')">I</button>
+                <button class="key" v-on:click="tapKey('O')">O</button>
+                <button class="key" v-on:click="tapKey('P')">P</button>
+              </div>
+              <div class="keys-line">
+                <button class="key" v-on:click="tapKey('A')">A</button>
+                <button class="key" v-on:click="tapKey('S')">S</button>
+                <button class="key" v-on:click="tapKey('D')">D</button>
+                <button class="key" v-on:click="tapKey('F')">F</button>
+                <button class="key" v-on:click="tapKey('G')">G</button>
+                <button class="key" v-on:click="tapKey('H')">H</button>
+                <button class="key" v-on:click="tapKey('J')">J</button>
+                <button class="key" v-on:click="tapKey('K')">K</button>
+                <button class="key" v-on:click="tapKey('L')">L</button>
+                <button class="key" v-on:click="clickEnter()">Enter</button>
+              </div>
+              <div class="keys-line">
+                <button class="key" v-on:click="tapKey('Z')">Z</button>
+                <button class="key" v-on:click="tapKey('X')">X</button>
+                <button class="key" v-on:click="tapKey('C')">C</button>
+                <button class="key" v-on:click="tapKey('V')">V</button>
+                <button class="key" v-on:click="tapKey('B')">B</button>
+                <button class="key" v-on:click="tapKey('N')">N</button>
+                <button class="key" v-on:click="tapKey('M')">M</button>
+                <button class="key" v-on:click="tapKey(' ')">SPC</button>
+                <button class="key" v-on:click="tapBskSpc()">BCKSPC</button>
+               </div>
             </div>
-            <div class="keys-line">
-              <button class="key" v-on:click="tapKey('A')">A</button>
-              <button class="key" v-on:click="tapKey('S')">S</button>
-              <button class="key" v-on:click="tapKey('D')">D</button>
-              <button class="key" v-on:click="tapKey('F')">F</button>
-              <button class="key" v-on:click="tapKey('G')">G</button>
-              <button class="key" v-on:click="tapKey('H')">H</button>
-              <button class="key" v-on:click="tapKey('J')">J</button>
-              <button class="key" v-on:click="tapKey('K')">K</button>
-              <button class="key" v-on:click="tapKey('L')">L</button>
-              <button class="key" v-on:click="clickEnter()">Enter</button>
-            </div>
-            <div class="keys-line">
-              <button class="key" v-on:click="tapKey('Z')">Z</button>
-              <button class="key" v-on:click="tapKey('X')">X</button>
-              <button class="key" v-on:click="tapKey('C')">C</button>
-              <button class="key" v-on:click="tapKey('V')">V</button>
-              <button class="key" v-on:click="tapKey('B')">B</button>
-              <button class="key" v-on:click="tapKey('N')">N</button>
-              <button class="key" v-on:click="tapKey('M')">M</button>
-              <button class="key" v-on:click="tapKey(' ')">SPC</button>
-              <button class="key" v-on:click="tapBskSpc()">BCKSPC</button>
-             </div>
-          </div>
+            <button class='speech-to-text' v-if="onTranscriptionStarted" v-on:click="transcribe">
+              <div>{{speechToTextText}}</div>
+              <img src="./assets/icons/mic-icon.png" class="mic-icon"></img>
+            </button>
+          </div> 
         </div>
         <div class="logo-section" v-else>
           <img src="./assets/icons/atos-olympic-games-thumbnail.jpg" class="logo"></img>

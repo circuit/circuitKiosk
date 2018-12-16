@@ -1,6 +1,7 @@
 'use strict'
 const record = require('node-record-lpcm16');
 const speech = require('@google-cloud/speech');
+const extend = require('extend');
 const DEFAULT_OPTIONS = {
     encoding: {
       alias: 'e',
@@ -41,54 +42,60 @@ let gcsHelper = function (logger) {
     };
 
     this.listen = function(listeningTime, options) {
-        if (!client) {
-            logger.error('[GCS] Speech Client has not been initialized.');
-            return;
-        }
-        options = options || DEFAULT_OPTIONS;
-        listeningTime = listeningTime || DEFAULT_LISTENING_TIME;
-        const request = {
-            config: {
-              encoding: options.encoding.default,
-              sampleRateHertz: options.sampleRateHertz.default,
-              languageCode: options.languageCode.default,
-            },
-            interimResults: false, // If you want interim results, set this to true
-        };
+        return new Promise(function(resolve, reject) {
+            if (!client) {
+                logger.error('[GCS] Speech Client has not been initialized.');
+                reject('Speech Client has not been initialized');
+            }
+            options = extend(true, options || {}, DEFAULT_OPTIONS);
+            listeningTime = listeningTime || DEFAULT_LISTENING_TIME;
+            const request = {
+                config: {
+                  encoding: options.encoding.default,
+                  sampleRateHertz: options.sampleRateHertz.default,
+                  languageCode: options.languageCode.default,
+                  speechContexts: options.speechContexts || []
+                },
+                interimResults: false, // If you want interim results, set this to true
+            };
+            
+            // Create a recognize stream
+            const recognizeStream = client
+                .streamingRecognize(request)
+                .on('error', function(error) {
+                    logger.error(`[GCS] Error transcribing. Error ${error}`);
+                    reject(error);
+                })
+                .on('data', data => {
+                    let result = data.results[0] && data.results[0].alternatives[0];
+                    if (result) {
+                        resolve(result.transcript);
+                        return;
+                    }
+                    reject('Reached transcription time limit');
+                });
         
-        // Create a recognize stream
-        const recognizeStream = client
-            .streamingRecognize(request)
-            .on('error', function(error) {
-                logger.error(`[GCS] Error transcribing. Error ${error}`);
-            })
-            .on('data', data =>
-                logger.debug(
-                data.results[0] && data.results[0].alternatives[0]
-                    ? `Transcription: ${data.results[0].alternatives[0].transcript}\n`
-                    : `\n\nReached transcription time limit, press Ctrl+C\n`
-                )
-            );
-    
-        // Start recording and send the microphone input to the Speech API
-        record
-            .start({
-                sampleRateHertz: options.sampleRateHertz,
-                threshold: 0,
-                // Other options, see https://www.npmjs.com/package/node-record-lpcm16#options
-                verbose: true,
-                recordProgram: 'rec', // Try also "arecord" or "sox"
-                silence: '10.0',
-            })
-            .on('error', function(error) {
-                logger.error(`[GCS] Error recording. Error ${error}`);
-            })
-            .pipe(recognizeStream);
-        logger.debug(`[GCS] Starting recording for ${listeningTime} seconds`);
-        setTimeout(function() {
-            logger.debug(`[GCS] Stop recording after ${listeningTime} seconds`);
-            record.stop();
-        }, listeningTime);
+            // Start recording and send the microphone input to the Speech API
+            record
+                .start({
+                    sampleRateHertz: options.sampleRateHertz,
+                    threshold: 0,
+                    // Other options, see https://www.npmjs.com/package/node-record-lpcm16#options
+                    verbose: true,
+                    recordProgram: 'rec', // Try also "arecord" or "sox"
+                    silence: '10.0',
+                })
+                .on('error', function(error) {
+                    logger.error(`[GCS] Error recording. Error ${error}`);
+                    reject(error);
+                })
+                .pipe(recognizeStream);
+            logger.debug(`[GCS] Starting recording for ${listeningTime} seconds`);
+            setTimeout(function() {
+                logger.debug(`[GCS] Stop recording after ${listeningTime} seconds`);
+                record.stop();
+            }, listeningTime);
+        });
     };
 }
 module.exports = gcsHelper;

@@ -141,6 +141,8 @@
     align-items: center;
     border-color: black;
     margin: 1px;
+    margin-left: auto;
+    margin-right: auto;
 }
 .keys-line {
     display: flex;
@@ -164,4 +166,24 @@
     color: red;
     margin-left: auto;
     margin-right: auto;
+}
+.input-row {
+    display: flex;
+    flex-direction: row;
+}
+.speech-to-text {
+    min-width: 40px;
+    margin-left: auto;
+    margin-right: auto;
+    border-color: black;
+    border-radius: 2px;
+    background-color: transparent;
+    color: black;
+    font-size: medium;
+    display: flex;
+    flex-direction: column;
+}
+.mic-icon {
+    max-width: 60px;
+    margin: auto;
 }

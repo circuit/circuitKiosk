@@ -10,6 +10,11 @@
     "botOwnerEmail": "bot-administrator-circuit-email",
     "monitoringConvId": "convid-from-where-bot-accepts-admin-commands",
     "gcsKeyFilePathName": "path/to/your/google/cloud/key/file/name",
+    "gcsSpeechContexts": [
+        {
+            "phrases": ["William", "Roberto", "Any-other-proper-names-to-help-gcs-recognized-speech"]
+        }
+    ],
     "logFile": "relative-or-absolute-path-and-filename",
     "receptionist": {
         "firstName": "Reception",
