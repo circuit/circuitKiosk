@@ -2,18 +2,16 @@ const config = require('./config.json');
 const packjson = require('./package.json');
 const Commander = require('./commandProcess');
 const util = require('util');
-const {states, BotState} = require('./botState');
 const logger = require('electron-log');
-const {ipcRenderer} = require('electron');
 const fs = require('fs');
 const Circuit = require('circuit-sdk/circuit.js');
 const GpioHelper = require('./gpioWrapper');
 const GcsHelper = require('./gcsWrapper');
 
-// Max Users that can be display on the screen
+// Max Users that can be displayed on the screen
 const MAX_USERS = 20;
 
-// Presence detection time to switch to USERS screen
+// Presence detection time to switch to user search screen
 const PRESENCE_ON_DELAY = 1000; // 1 second
 // Time to switch back to splash screen after no more presence
 const PRESENCE_OFF_DELAY = 10000; // 10 seconds
@@ -26,15 +24,10 @@ const RESTART_MOTION_DETECTION_DELAY = 10000; // 10 seconds
 // Listening time
 const LISTENING_TIME = 4000; // 4 seconds
 
-process.argv.forEach(function(argv, index) {
-    logger.info(`argv[${index}]: ${argv}`);
-});
-
 let Bot = function(client) {
     let self = this;
     let commander = new Commander(logger);
     let gpioHelper = new GpioHelper(logger, config.virtualEnvironment);
-    let botState = new BotState(states.INITIALIZING, logger);
     let gcsHelper = new GcsHelper(logger);
     let user;
     let motionDetectorIndex;
@@ -79,7 +72,7 @@ let Bot = function(client) {
             gpioHelper.initBuzzer();
             gpioHelper.setLED(initialLedStatus || GpioHelper.STATUS_OFF);
             gpioHelper.setBuzzer(GpioHelper.STATUS_OFF);
-            self.startHygroTermInterval();
+            startHygroTermInterval();
             resolve();
         });
     };
@@ -126,14 +119,13 @@ let Bot = function(client) {
     };
 
     /*
-     * getConversation
+     * getMonitoringConversation
      */
     async function getMonitoringConversation() {
-        let conv;
         if (config.monitoringConvId) {
             logger.info(`[RENDERER] Check if conversation ${config.monitoringConvId} exists`);
             try {
-                conv = await client.getConversationById(config.monitoringConvId);
+                let conv = await client.getConversationById(config.monitoringConvId);
                 if (conv) {
                     logger.info(`[RENDERER] conversation ${config.monitoringConvId} exists`);
                     return conv;
@@ -150,13 +142,12 @@ let Bot = function(client) {
      * say Hi
      */
     this.sayHi = async function() {
-        if (botState.getState() === states.INITIALIZING) {
-            botState.setState(states.IDLE);
-        }
         logger.info('[RENDERER] say hi');
         monitoringConv = await getMonitoringConversation();
-        client.addTextItem(monitoringConv.convId, buildConversationItem(null, `Hi from ${user.displayName}`,
+        if (monitoringConv) {
+            client.addTextItem(monitoringConv.convId, buildConversationItem(null, `Hi from ${user.displayName}`,
             `I am ready. Use "@${user.displayName} help , or ${user.displayName} help, or just //help" to see available commands`));
+        }
     };
 
     /*
@@ -224,7 +215,7 @@ let Bot = function(client) {
         }
     };
 
-    processFormSubmission = function(evt) {
+    function processFormSubmission(evt) {
         logger.info(`[RENDERER] process form submission. ${evt.form.id}`);
         evt.form.data.forEach(ctrl => {
             logger.debug(`${ctrl.key}: ${ctrl.value}`);
@@ -284,7 +275,6 @@ let Bot = function(client) {
      */
     async function processCallStatusEvent(evt) {
         logger.info(`[RENDERER] callStatus event: Reason= ${evt.reason}, State= ${app.currentCall && app.currentCall.state} ==> ${evt.call.state}`);
-        logger.info(`[RENDERER] Bot state: ${botState.getStateText()}`);
 
         if (app.currentCall && app.currentCall.callId !== evt.call.callId) {
             // Event is not for current call
@@ -299,13 +289,11 @@ let Bot = function(client) {
                 startConference(conv, evt.call.callId);
             }
         } else if (evt.call.state === 'Waiting') {
-            let st = botState.getState();
-            if (st === states.INCALL) {
+            if (app.currentCall.state === 'Active') {
                 // Leave conference if not more participants
                 client.leaveConference(evt.call.callId);
-            } else if (st == states.STARTCONF) {
+            } else if (app.currentCall.state === 'Initiated' && evt.call.state === 'Waiting') {
                 // Ring all participants
-                botState.setState(states.ALERTING);
                 client.getConversationById(evt.call.convId).then((conv) => {
                     conv.participants.forEach((userId) => {
                         logger.info(`[RENDERER] Check is ${userId} is already in the call`);
@@ -319,9 +307,8 @@ let Bot = function(client) {
                 });
             }
         } else if (app.currentCall.state !== 'Active' && evt.call.state === 'Active') {
-            // At least two participants. Me and someelse. Setup Media.
+            // At least two participants. Me and some else. Setup Media.
             setupMedia(evt.call);
-            botState.setState(states.INCALL);
         } else {
             logger.info(`[RENDERER] Unhandled call state: ${evt.call.state}`);
         }
@@ -358,7 +345,6 @@ let Bot = function(client) {
     function processCallEndedEvent(evt) {
         if (evt.call.callId === app.currentCall.callId) {
             app.currentCall = null;
-            botState.setState(states.IDLE);
             motionDetectorIndex = gpioHelper.subscribeToMotionDetection(motionChange, GpioHelper.MODE_BOTH);
         }
     };
@@ -394,9 +380,6 @@ let Bot = function(client) {
             commander.processCommand(withoutName, async (reply, params) => {
                 logger.info(`[RENDERER] Interpreting command to ${reply} with parms ${JSON.stringify(params)}`);
                 switch (reply) {
-                    case 'status':
-                        reportStatus(convId, itemId);
-                        break;
                     case 'version':
                         reportVersion(convId, itemId);
                         break;
@@ -409,14 +392,7 @@ let Bot = function(client) {
                         break;
                     case 'stop':
                         app.currentCall && client.leaveConference(app.currentCall.callId);
-                        ipcRenderer.send('relaunch');
-                        // ipcRenderer.send('relaunch');
-                        // process.exit(1);
                         app.currentCall = null;
-                        botState.setState(states.IDLE);
-                        break;
-                    case 'dial':
-                        dial(convId, itemId, params);
                         break;
                     case 'getLogs':
                         getLogFile(convId, itemId);
@@ -464,14 +440,6 @@ let Bot = function(client) {
     };
 
     /*
-     * Report bot status
-     */
-    function reportStatus(convId, itemId) {
-        client.addTextItem(convId, buildConversationItem(itemId, null,
-            `Status <b>${botState.getStateText()}</b>`));
-    };
-
-    /*
      * Report software versions
      */
     function reportVersion(convId, itemId) {
@@ -506,25 +474,6 @@ let Bot = function(client) {
     }
 
     /*
-     * dial phone number
-     */
-    async function dial(convId, itemId, params) {
-        if (!params || !params.length) {
-            logger.error(`[RENDERER] No number to dial`);
-            sendErrorItem(convId, itemId, 'Unable to dial. Phone number missing');
-            return;
-        }
-        try {
-            logger.info(`[RENDERER] Dialling number ${params[0]}`);
-            app.currentCall = await client.dialNumber(params[0], null, {audio: true, video: false});
-            botState.setState(states.DIALLING);
-        } catch (error) {
-            sendErrorItem(convId, itemId, `Error dialing number ${params[0]}. Error: ${error}`);
-            logger.error(`[RENDERER] Error dialing number ${params[0]}. Error: ${error}`);
-        }
-    };
-
-    /*
      * Start Circuit Conference
      */
     startConference = async function(conv, callId) {
@@ -533,12 +482,10 @@ let Bot = function(client) {
             if (!call) {
                 if (conv.type !== Circuit.Enums.ConversationType.DIRECT) {
                     call = await client.startConference(conv.convId, {audio: true, video: true});
-                    botState.setState(states.STARTCONF);
                 } else {
                     conv.participants.forEach(async function(participant) {
                         if (participant !== user.userId) {
                             call = await client.makeCall(participant, {audio: true, video: true});
-                            botState.setState(states.STARTCONF);
                         }
                     });
                 }
@@ -788,7 +735,7 @@ let Bot = function(client) {
             }, DOOR_UNLOCK_TIME);
     };
 
-    this.startHygroTermInterval = function (interval) {
+    function startHygroTermInterval(interval) {
         let update = function() {
             gpioHelper.readTempAndHumidity(function(temp, humidity) {
                 app.updateBottomBar(temp, humidity);

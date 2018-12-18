@@ -11,10 +11,6 @@
         "description": "Quits the conference call",
         "command": "stop"
     },
-    "status": {
-        "description": "Displays the status of the device",
-        "command": "status"
-    },
     "version": {
         "description": "Displays the device's software version",
         "command": "version"

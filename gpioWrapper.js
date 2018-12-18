@@ -19,7 +19,7 @@ let HYGRO_THERMO_GRAPH_SENSOR_TYPE_DHT11 = 11;
 const MODE_ON_ONLY= 'MODE_ON_ONLY';
 const MODE_OFF_ONLY = 'MODE_OFF_ONLY';
 const MODE_BOTH = 'MODE_BOTH';
-const SENSOR_QUERY_INTERVAL = 100; // 1 sec
+const SENSOR_QUERY_INTERVAL = 100; // .1 sec
 
 
 let GpioHelper = function (logger, mock) {
