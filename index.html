@@ -77,7 +77,7 @@
                 <button class="key" v-on:click="tapBskSpc()">BCKSPC</button>
                </div>
             </div>
-            <button class='speech-to-text' v-if="onTranscriptionStarted" v-on:click="transcribe">
+            <button class='speech-to-text' v-if="onTranscriptionStarted" v-on:click="transcribe" :disabled="speechToTextText==='Recording'">
               <div>{{speechToTextText}}</div>
               <img src="./assets/icons/mic-icon.png" class="mic-icon"></img>
             </button>

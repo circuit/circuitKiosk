@@ -104,18 +104,24 @@ let Bot = function(client) {
      */
     function addEventListeners(client) {
         logger.info('[RENDERER] addEventListeners');
-        Circuit.supportedEvents.forEach(function(e) {
-            client.addEventListener(e, processEvent);
+        client.addEventListener('itemAdded', processItemAddedEvent);
+        client.addEventListener('itemUpdated', processItemUpdatedEvent);
+        client.addEventListener('callStatus',processCallStatusEvent);
+        client.addEventListener('callEnded',processCallEndedEvent);
+        client.addEventListener('callIncoming', processCallIncomingEvent);
+        client.addEventListener('formSubmission', processFormSubmission);
+        client.addEventListener('basicSearchResults', evt => {
+            processSearchResults(evt.data).then(users => {
+                app.setUsers(users);
+            });
         });
-        client.addEventListener('searchStatus', processEvent);
-    };
-
-    /*
-     * logEvent
-     */
-    function logEvent(evt) {
-        logger.info(`[RENDERER] ${evt.type} event received`);
-        logger.debug(`[RENDERER]`, util.inspect(evt, {showHidden: true, depth: null}));
+        client.addEventListener('searchStatus', evt => {
+            processSearchStatus(evt.data).then(users => {
+                if (users) {
+                    app.setUsers(users);
+                }
+            });
+        });
     };
 
     /*
@@ -171,48 +177,6 @@ let Bot = function(client) {
         logger.error(`[RENDERER] bot failed ${error.message}`);
         logger.error(error.stack);
         process.exit(1);
-    };
-
-    /*
-     * processEvent
-    */
-    function processEvent(evt) {
-        logEvent(evt);
-        switch (evt.type) {
-            case 'itemAdded':
-                processItemAddedEvent(evt);
-                break;
-            case 'itemUpdated':
-                processItemUpdatedEvent(evt);
-                break;
-            case 'callStatus':
-                processCallStatusEvent(evt);
-                break;
-            case 'callEnded':
-                processCallEndedEvent(evt);
-                break;
-            case 'callIncoming':
-                processCallIncomingEvent(evt);
-                break;
-            case 'basicSearchResults':
-                processSearchResults(evt.data).then(users => {
-                    app.setUsers(users);
-                });
-                break;
-            case 'formSubmission':
-                processFormSubmission(evt);
-                break;
-            case 'searchStatus':
-                processSearchStatus(evt.data).then(users => {
-                    if (users) {
-                        app.setUsers(users);
-                    }
-                });
-                break;
-            default:
-                logger.info(`[RENDERER] unhandled event ${evt.type}`);
-                break;
-        }
     };
 
     function processFormSubmission(evt) {
@@ -366,7 +330,7 @@ let Bot = function(client) {
     };
 
     /*
-     * Process command
+     * Process command: this commands are used for debugging and monitoring of the application
      */
     function processCommand(convId, itemId, command) {
         logger.info(`[RENDERER] Processing command: [${command}]`);
@@ -535,21 +499,25 @@ let Bot = function(client) {
     };
 
     function startTranscription(appCallback) {
+        gpioHelper.flashLed();
         let timeout = setTimeout(function () {
             logger.debug('[RENDERER] No transciption or error');
             appCallback('');
+            gpioHelper.setLED(GpioHelper.STATUS_OFF);
         }, LISTENING_TIME * 2);
         gcsHelper.listen(LISTENING_TIME, {
             "speechContexts": config.gcsSpeechContexts
         })
         .then(transcript => {
             clearTimeout(timeout);
-            appCallback(transcript)
+            appCallback(transcript);
+            gpioHelper.setLED(GpioHelper.STATUS_OFF);
         })
         .catch(error => {
             logger.error(`Error during transcription: ${error}`);
             clearTimeout(timeout);
             appCallback('');
+            gpioHelper.setLED(GpioHelper.STATUS_OFF);
         });
         
     };

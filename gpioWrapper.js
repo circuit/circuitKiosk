@@ -1,6 +1,5 @@
 'use strict';
 let Gpio = require('onoff').Gpio; //include onoff to interact with the GPIO
-let fs = require('fs');
 let gpioMock = require('gpio-mock');
 let DHTSensor = require("node-dht-sensor");
 
@@ -21,6 +20,9 @@ const MODE_OFF_ONLY = 'MODE_OFF_ONLY';
 const MODE_BOTH = 'MODE_BOTH';
 const SENSOR_QUERY_INTERVAL = 100; // .1 sec
 
+// LED Flashing on and off default times
+const LED_FLASH_SPEED_DEFAULT_TIME = 500; // 500 ms
+
 
 let GpioHelper = function (logger, mock) {
     let motionSensor;
@@ -29,9 +31,7 @@ let GpioHelper = function (logger, mock) {
     let motionDetectionSubscribers = [];
     let motionSensorTimer;
     let currentDetectionStatus = null;
-    let dht_type = HYGRO_THERMO_GRAPH_SENSOR_TYPE_DHT11;
-    let dht_pin = GPIO_PIN_21;
-    let self = this;
+    let ledFlashingTimer;
 
     if (mock) {
         logger.debug('[GPIO] It seems we are not running on an actual RPI. Mocking of GPIO shall start');
@@ -49,7 +49,24 @@ let GpioHelper = function (logger, mock) {
     };
 
     this.setLED = function(status) {
+        if (ledFlashingTimer) {
+            clearInterval(ledFlashingTimer);
+            ledFlashingTimer = null;
+        }
         LED.writeSync(status);
+    };
+
+    this.flashLed = function(speed) {
+        speed = speed || LED_FLASH_SPEED_DEFAULT_TIME;
+        let status = STATUS_ON;
+        LED.writeSync(status);
+        if (ledFlashingTimer) {
+            clearInterval(ledFlashingTimer);
+        }
+        ledFlashingTimer = setInterval(() => {
+            status = status === STATUS_ON ? STATUS_OFF : STATUS_ON;
+            LED.writeSync(status);
+        }, speed);
     };
 
     this.initBuzzer = function(gpioPin) {
