@@ -1,7 +1,6 @@
 const config = require('./config.json');
 const packjson = require('./package.json');
 const Commander = require('./commandProcess');
-const util = require('util');
 const logger = require('electron-log');
 const fs = require('fs');
 const Circuit = require('circuit-sdk/circuit.js');
@@ -11,30 +10,24 @@ const GcsHelper = require('./gcsWrapper');
 // Max Users that can be displayed on the screen
 const MAX_USERS = 20;
 
-// Presence detection time to switch to user search screen
-const PRESENCE_ON_DELAY = 1000; // 1 second
-// Time to switch back to splash screen after no more presence
-const PRESENCE_OFF_DELAY = 10000; // 10 seconds
 // Time the door is kept unlock
 const DOOR_UNLOCK_TIME = 2000; // 2 seconds
 // Interval to update hygrotermo data
 const UPDATE_HYGROTERMO_INTERVAL = 30000; // 30 seconds
 // Time before starting motion detection
-const RESTART_MOTION_DETECTION_DELAY = 10000; // 10 seconds
+const PRESENCE_DETECTION_DELAY = 10000; // 10 seconds
 // Listening time
 const LISTENING_TIME = 4000; // 4 seconds
 
 let Bot = function(client) {
-    let self = this;
     let commander = new Commander(logger);
     let gpioHelper = new GpioHelper(logger, config.virtualEnvironment);
     let gcsHelper = new GcsHelper(logger);
     let user;
-    let motionDetectorIndex;
     let monitoringConv;
     let app;
     let searchId;
-    let motionChangeDelayTimer;
+    let ignorePresenceChangeDelay;
 
     /*
      * Logon Client
@@ -62,16 +55,15 @@ let Bot = function(client) {
         });
     };
 
-    this.startSensors = function(motionSensingDelay, initialLedStatus) {
+    this.startSensors = function() {
         return new Promise((resolve) => {
-            gpioHelper.initMotionSensor();
-            setTimeout(function() {
-                motionDetectorIndex = gpioHelper.subscribeToMotionDetection(motionChange, GpioHelper.MODE_BOTH);
-            }, motionSensingDelay || RESTART_MOTION_DETECTION_DELAY);
-            gpioHelper.initLED();
-            gpioHelper.initBuzzer();
-            gpioHelper.setLED(initialLedStatus || GpioHelper.STATUS_OFF);
-            gpioHelper.setBuzzer(GpioHelper.STATUS_OFF);
+            gpioHelper.initPresenceChangeSensor({
+                callback: presenceChange,
+                detection: GpioHelper.STATUS_ON,
+                initialDelay: PRESENCE_DETECTION_DELAY
+            });
+            gpioHelper.initLED(GpioHelper.STATUS_OFF);
+            gpioHelper.initBuzzer(GpioHelper.STATUS_OFF);
             startHygroTermInterval();
             resolve();
         });
@@ -277,12 +269,8 @@ let Bot = function(client) {
             logger.info(`[RENDERER] Unhandled call state: ${evt.call.state}`);
         }
         app.currentCall = evt.call;
-        // Unsubscribe for motion detection
-        gpioHelper.unsubscribeFromMotionDetection(motionDetectorIndex);
-        motionDetectorIndex = null;
-        if (motionChangeDelayTimer) {
-            clearTimeout(motionChangeDelayTimer);
-        }
+        // Unsubscribe for presence detection
+        gpioHelper.stopPresenceDetection();
     };
 
     /*
@@ -309,7 +297,7 @@ let Bot = function(client) {
     function processCallEndedEvent(evt) {
         if (evt.call.callId === app.currentCall.callId) {
             app.currentCall = null;
-            motionDetectorIndex = gpioHelper.subscribeToMotionDetection(motionChange, GpioHelper.MODE_BOTH);
+             gpioHelper.restartPresenceDetection();
         }
     };
 
@@ -499,7 +487,7 @@ let Bot = function(client) {
     };
 
     function startTranscription(appCallback) {
-        gpioHelper.flashLed();
+        gpioHelper.flashLED();
         let timeout = setTimeout(function () {
             logger.debug('[RENDERER] No transciption or error');
             appCallback('');
@@ -569,8 +557,7 @@ let Bot = function(client) {
         }
         app.setUsers([]);
         app.resetSearchData();
-        gpioHelper.unsubscribeFromMotionDetection(motionDetectorIndex);
-        motionDetectorIndex = null;
+        gpioHelper.stopPresenceDetection();
     }
 
     function initUI (onCallUserCb, onSearchStringUpdated, onTranscriptionStarted) {
@@ -673,19 +660,18 @@ let Bot = function(client) {
             client.cancelSearch(searchId);
         }
         searchId = client.startUserSearch(searchString);
-        if (motionChangeDelayTimer) {
-            clearTimeout(motionChangeDelayTimer);
-        }
+        clearTimeout(ignorePresenceChangeDelay);
+        ignorePresenceChangeDelay = setTimeout(() => {
+            ignorePresenceChangeDelay = null;
+        }, PRESENCE_DETECTION_DELAY);
     }
 
-    function motionChange(status) {
-        logger.debug(`[RENDERER] Motion detected status ${status}`);
-        if (motionChangeDelayTimer) {
-            clearTimeout(motionChangeDelayTimer);
+    function presenceChange(status) {
+        logger.debug(`[RENDERER] Presence status ${status} changed`);
+        if (ignorePresenceChangeDelay) {
+            return;
         }
-        motionChangeDelayTimer = setTimeout(function () {
-            app.setPresence(status === GpioHelper.STATUS_ON);
-        }, (status === GpioHelper.STATUS_OFF ? PRESENCE_OFF_DELAY : PRESENCE_ON_DELAY));
+        app.setPresence(status === GpioHelper.STATUS_ON);
     };
 
     function openDoor(convId, itemId) {

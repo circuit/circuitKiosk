@@ -18,7 +18,13 @@ let HYGRO_THERMO_GRAPH_SENSOR_TYPE_DHT11 = 11;
 const MODE_ON_ONLY= 'MODE_ON_ONLY';
 const MODE_OFF_ONLY = 'MODE_OFF_ONLY';
 const MODE_BOTH = 'MODE_BOTH';
-const SENSOR_QUERY_INTERVAL = 100; // .1 sec
+const SENSOR_QUERY_INTERVAL = 1000; // .1 sec
+// Presence detection time to switch to user search screen
+const DEFAULT_PRESENCE_ON_DELAY = 1000; // 1 second
+// Time to switch back to splash screen after no more presence
+const DEFAULT_PRESENCE_OFF_DELAY = 10000; // 10 seconds
+// Time before starting motion after initialization
+const DEFAULT_INITIAL_MOTION_DETECTION_DELAY = 0;
 
 // LED Flashing on and off default times
 const LED_FLASH_SPEED_DEFAULT_TIME = 500; // 500 ms
@@ -28,10 +34,12 @@ let GpioHelper = function (logger, mock) {
     let motionSensor;
     let LED;
     let buzzer;
-    let motionDetectionSubscribers = [];
     let motionSensorTimer;
+    let presenceNotificationDelayTimer;
     let currentDetectionStatus = null;
     let ledFlashingTimer;
+    let motionSensorOptions;
+    let self = this;
 
     if (mock) {
         logger.debug('[GPIO] It seems we are not running on an actual RPI. Mocking of GPIO shall start');
@@ -44,8 +52,62 @@ let GpioHelper = function (logger, mock) {
        motionSensor = new Gpio(gpioPin || GPIO_PIN_25, 'in', 'both');
     };
 
-    this.initLED = function(gpioPin) {
+    this.initPresenceChangeSensor = function(options) {
+        if (!options || !options.callback) {
+            logger.error('[GPIO] Not enough options to initialize motion sensor');
+            return;
+        }
+        motionSensorOptions = options;
+        motionSensor = new Gpio(motionSensorOptions.gpioPin || GPIO_PIN_25, 'in', 'both');
+        if(options.detection === STATUS_ON) {
+            setTimeout(() => self.restartPresenceDetection(motionSensorOptions),
+            options.initialDelay || DEFAULT_INITIAL_MOTION_DETECTION_DELAY);
+        }
+    };
+
+    this.restartPresenceDetection = function(options) {
+        logger.debug('[GPIO] Restart Precense Detection');
+        options = options || motionSensorOptions;
+        if (!options.callback) {
+            logger.error('[GPIO] Not enough options to initialize motion sensor');
+            return;
+        }
+        if (motionSensorTimer) {
+            clearInterval(motionSensorTimer);
+        }
+        motionSensorTimer = setInterval(() => {
+            motionSensor.read((error, status) => {
+                if (!error) {
+                    if (currentDetectionStatus === null || currentDetectionStatus !== status) {
+                        logger.debug(`[GPIO] Status change. Old status = ${currentDetectionStatus}. New status ${status}.`);
+                        if (presenceNotificationDelayTimer) {
+                            clearTimeout(presenceNotificationDelayTimer);
+                        }
+                        presenceNotificationDelayTimer = setTimeout(() => {
+                            logger.debug(`[GPIO] Invoke callback with status ${status}`);
+                            options.callback(status);
+                        }, status === STATUS_OFF ? motionSensorOptions.presenceOffDelay || DEFAULT_PRESENCE_OFF_DELAY
+                            : motionSensorOptions.presenceOnDelay || DEFAULT_PRESENCE_ON_DELAY);
+                    }
+                    currentDetectionStatus = status;
+                    return;
+                }
+                logger(`[GPIO] Error querying sensor: Error ${error}`);
+            });
+        }, options.presenceCheckTime || SENSOR_QUERY_INTERVAL);
+    };
+
+    this.stopPresenceDetection = function() {
+        logger.debug('[GPIO] Stop Precense Detection');
+        if(motionSensorTimer) {
+            clearInterval(motionSensorTimer);
+            motionSensorTimer = null;
+        }
+    };
+
+    this.initLED = function(gpioPin, status) {
         LED = new Gpio(gpioPin || GPIO_PIN_16, 'out');
+        self.setLED(status);
     };
 
     this.setLED = function(status) {
@@ -56,7 +118,7 @@ let GpioHelper = function (logger, mock) {
         LED.writeSync(status);
     };
 
-    this.flashLed = function(speed) {
+    this.flashLED = function(speed) {
         speed = speed || LED_FLASH_SPEED_DEFAULT_TIME;
         let status = STATUS_ON;
         LED.writeSync(status);
@@ -69,50 +131,13 @@ let GpioHelper = function (logger, mock) {
         }, speed);
     };
 
-    this.initBuzzer = function(gpioPin) {
+    this.initBuzzer = function(gpioPin, status) {
         buzzer = new Gpio(gpioPin || GPIO_PIN_12, 'out');
+        self.setBuzzer(status);
     };
 
     this.setBuzzer = function(status) {
         buzzer.writeSync(status);
-    };
-
-    this.subscribeToMotionDetection = function (callbak, mode) {
-        logger.debug('[GPIO] New Subscription to motion detection');
-        if (callbak) {
-            motionDetectionSubscribers.push({
-                callback: callbak,
-                mode: mode
-            });
-            if (!motionSensorTimer) {
-                logger.debug(`[GPIO] Starting Motion Detection Interval`);
-                motionSensorTimer = setInterval(function () {
-                    motionSensor.read(function(error, status) {
-                        if (!error) {
-                            if (currentDetectionStatus === null || currentDetectionStatus !== status) {
-                                logger.debug('[GPIO] Start notifying sbscribers');
-                                notifySubscribersOfMotionDetection(status);
-                            }
-                            currentDetectionStatus = status;
-                            return;
-                        }
-                        logger(`[GPIO] Error querying sensor: Error ${error}`);
-                    });
-                }, SENSOR_QUERY_INTERVAL);
-            }
-            return motionDetectionSubscribers.length - 1;
-        }
-        logger.error('[GPIO] No callback provided');
-    };
-
-    this.unsubscribeFromMotionDetection = function (index) {
-        if (index >= 0 && index < motionDetectionSubscribers.length) {
-            motionDetectionSubscribers.splice(index, 1);
-        }
-        if (!motionDetectionSubscribers.length) {
-            clearInterval(motionSensorTimer);
-            motionSensorTimer = null;
-        }
     };
 
     this.readTempAndHumidity = function (cb, gpioPin, dhtType) {
@@ -139,22 +164,6 @@ let GpioHelper = function (logger, mock) {
         return motionSensor.readSync();
     };
 
-    function notifySubscribersOfMotionDetection(status) {
-        logger.debug(`[GPIO] Notifying ${motionDetectionSubscribers.length} subscribers for status ${status}`);
-        motionDetectionSubscribers.forEach(function(subs, index) {
-            if (status === STATUS_ON) {
-                if (subs.mode !== MODE_OFF_ONLY) {
-                    logger.debug(`[GPIO] Notifying for mode ${subs.mode} to subscriber #${index}`);
-                    subs.callback(status);
-                } 
-            } else {
-                if (subs.mode !== MODE_ON_ONLY) {
-                    logger.debug(`[GPIO] Notifying for mode ${subs.mode} to subscriber #${index}`);
-                    subs.callback(status);
-                }
-            }
-        })
-    };
 };
 module.exports = GpioHelper;
 module.exports.MODE_BOTH = MODE_BOTH;
