@@ -43,7 +43,9 @@ function createWindow() {
 }
 
 // Workarround for https://github.com/electron/electron-quick-start/issues/224
-app.disableHardwareAcceleration();
+if (debug) {
+    app.disableHardwareAcceleration();
+}
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
