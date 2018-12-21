@@ -23,7 +23,7 @@ let CommandProcessor = function() {
     };
 
     this.buildHelp = function(test) {
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve) => {
             let help = '';
             let baseCommand = '';
             JSON.stringify(menu, function(key, value) {

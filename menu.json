@@ -23,19 +23,9 @@
         "description": "Unlock door",
         "command": "openDoor"
     },
-    "search": {
-        "description": "Test search users function",
-        "command": "search",
-        "test": true
-    },
     "temp": {
         "description": "Get Temperature and humidity",
         "command": "getTemp",
-        "test": true
-    },
-    "transcribe": {
-        "description": "Test speech to text",
-        "command": "speechToText",
         "test": true
     }
 }

@@ -1,7 +1,7 @@
 'use strict';
 
 // Electron
-const {ipcMain, app, BrowserWindow} = require('electron');
+const {app, BrowserWindow} = require('electron');
 const path = require('path');
 const url = require('url');
 const logger = require('electron-log');
@@ -14,20 +14,14 @@ logger.transports.file.maxSize = 1024 * 1024;
 
 let debug = /--debug/.test(process.argv[2]);
 let kiosk =  /--kiosk/.test(process.argv[2]);
-let relaunch;
-
-process.argv.forEach(function(argv, index) {
-    relaunch = /--relaunch/.test(argv);
-    logger.info(`argv[${index}]: ${argv}`);
-});
-
+let win;
 /**
  * Creates Electron Window
 */
 function createWindow() {
     logger.info(`[ELECTRON] Create Window`);
     // Create the browser window.
-    let win = new BrowserWindow({
+    win = new BrowserWindow({
         kiosk: kiosk
         //height: 480
     });
@@ -42,9 +36,6 @@ function createWindow() {
     // Open the DevTools in debug mode
     debug && win.webContents.on('did-frame-finish-load', () => {
             win.webContents.openDevTools();
-
-            // Tell renderer if it is a relaunch
-            relaunch && win.webContents.send('relaunch');
         });
 
     // Emitted when the window is closed.
@@ -68,20 +59,10 @@ app.on('window-all-closed', () => {
     }
 });
 
-app.on('activate', function() {
+app.on('activate', () => {
     // On OS X it's common to re-create a window in the app when the
     // dock icon is clicked and there are no other windows open.
     if (win === null) {
         createWindow();
     }
-});
-
-ipcMain.on('relaunch', function() {
-    logger.info('[MAIN] Received relaunch request');
-    // let args = process.argv.slice(1);
-    // if (!relaunch) {
-    //     args = args.concat(['--relaunch']);
-    // }
-    // app.relaunch({args: args});
-    // app.exit(0);
 });

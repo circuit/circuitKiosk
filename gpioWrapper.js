@@ -148,10 +148,10 @@ let GpioHelper = function (logger, mock) {
         }
         DHTSensor.read(dhtType || HYGRO_THERMO_GRAPH_SENSOR_TYPE_DHT11, gpioPin || GPIO_PIN_21, function(err, temp, humidity) {
             if(!err) {
-                console.log(`Temperature: ${temp.toFixed(1)} °C. Humidity: ${humidity.toFixed(1)} %`);
+                logger.debug(`Temperature: ${temp.toFixed(1)} °C. Humidity: ${humidity.toFixed(1)} %`);
                 cb(temp, humidity);
             } else {
-                console.log(`Error reading DHT11. Error: ${err}`);
+                logger.error(`Error reading DHT11. Error: ${err}`);
             }
         });
     };
