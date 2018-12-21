@@ -1,3 +1,6 @@
+/* global Vue */
+'use strict';
+
 const config = require('./config.json');
 const packjson = require('./package.json');
 const Commander = require('./commandProcess');
@@ -54,7 +57,9 @@ let Bot = function(client) {
             retry = setInterval(logon, 2000);
         });
     };
-
+    /*
+     * Start sensors
+     */
     this.startSensors = function() {
         return new Promise((resolve) => {
             gpioHelper.initPresenceChangeSensor({
@@ -114,7 +119,7 @@ let Bot = function(client) {
                 }
             });
         });
-    };
+    }
 
     /*
      * getMonitoringConversation
@@ -134,7 +139,7 @@ let Bot = function(client) {
         }
         logger.info('[RENDERER] Conversation not configured or it does not exist. Find direct conv with owner');
         return client.getDirectConversationWithUser(config.botOwnerEmail, true);
-    };
+    }
 
     /*
      * say Hi
@@ -159,7 +164,7 @@ let Bot = function(client) {
             contentType: Circuit.Constants.TextItemContentType.RICH,
             attachments: attachments && [attachments],
         };
-    };
+    }
 
     /*
      * terminate
@@ -201,7 +206,7 @@ let Bot = function(client) {
                     break;
             }
         });
-    };
+    }
 
     /*
      * processItemAddedEvent
@@ -211,7 +216,7 @@ let Bot = function(client) {
             logger.info(`[RENDERER] Received itemAdded event with itemId [${evt.item.itemId}] and content [${evt.item.text.content}]`);
             processCommand(evt.item.convId, evt.item.parentItemId || evt.item.itemId, evt.item.text.content);
         }
-    };
+    }
 
     /*
      * processItemUpdatedEvent
@@ -219,24 +224,24 @@ let Bot = function(client) {
     function processItemUpdatedEvent(evt) {
         if (evt.item.text && evt.item.creatorId !== user.userId) {
             if (evt.item.text.content) {
-                let lastPart = evt.item.text.content.split('<hr/>').pop();
+                let lastPart = evt.item.text.content.split('<hr>').pop();
                 logger.info(`[RENDERER] Received itemUpdated event with: ${lastPart}`);
                 processCommand(evt.item.convId, evt.item.parentItemId || evt.item.itemId, lastPart);
             }
         }
-    };
+    }
 
     /*
      * processCallStatusEvent
      */
     async function processCallStatusEvent(evt) {
-        logger.info(`[RENDERER] callStatus event: Reason= ${evt.reason}, State= ${app.currentCall && app.currentCall.state} ==> ${evt.call.state}`);
-
         if (app.currentCall && app.currentCall.callId !== evt.call.callId) {
             // Event is not for current call
             logger.info('[RENDERER] Received event for a different call');
             return;
         }
+
+        logger.info(`[RENDERER] callStatus event: Reason= ${evt.reason}, State= ${app.currentCall && app.currentCall.state} ==> ${evt.call.state}`);
 
         if (!app.currentCall) {
             if (evt.call.state === 'Started') {
@@ -271,7 +276,7 @@ let Bot = function(client) {
         app.currentCall = evt.call;
         // Unsubscribe for presence detection
         gpioHelper.stopPresenceDetection();
-    };
+    }
 
     /*
      * processCallIncomingEvent
@@ -289,7 +294,7 @@ let Bot = function(client) {
             startConference(conv, evt.call.callId);
         }
         app.currentCall = evt.call;
-    };
+    }
 
     /*
      * processCallEndedEvent
@@ -297,9 +302,9 @@ let Bot = function(client) {
     function processCallEndedEvent(evt) {
         if (evt.call.callId === app.currentCall.callId) {
             app.currentCall = null;
-             gpioHelper.restartPresenceDetection();
+            gpioHelper.restartPresenceDetection();
         }
-    };
+    }
 
     /*
      * isItForMe?
@@ -315,7 +320,7 @@ let Bot = function(client) {
             return command.substr(command.indexOf('//') + 2);
         }
         return;
-    };
+    }
 
     /*
      * Process command: this commands are used for debugging and monitoring of the application
@@ -339,8 +344,7 @@ let Bot = function(client) {
                         showHelp(convId, itemId, params);
                         break;
                     case 'start':
-                        let conv = await client.getConversationById(convId);
-                        startConference(conv);
+                        startConference(await client.getConversationById(convId));
                         break;
                     case 'stop':
                         app.currentCall && client.leaveConference(app.currentCall.callId);
@@ -348,9 +352,6 @@ let Bot = function(client) {
                         break;
                     case 'getLogs':
                         getLogFile(convId, itemId);
-                        break;
-                    case 'search':
-                        searchUsers(convId, itemId, params && params[0], true);
                         break;
                     case 'openDoor':
                         openDoor(convId, itemId);
@@ -360,9 +361,6 @@ let Bot = function(client) {
                             client.addTextItem(convId, buildConversationItem(itemId, null,
                                 `Temperature: ${temp}, humidity: ${humidity}`));
                         });
-                        break;
-                    case 'speechToText':
-                        gcsHelper.listen();
                         break;
                     default:
                         logger.info(`[RENDERER] I do not understand [${withoutName}]`);
@@ -374,7 +372,7 @@ let Bot = function(client) {
         } else {
             logger.info('[RENDERER] Ignoring command: it is not for me');
         }
-    };
+    }
 
     /*
      * Gets Log File
@@ -389,7 +387,7 @@ let Bot = function(client) {
             client.addTextItem(convId, buildConversationItem(itemId, 'LOGS', 'Here are my logs', file));
         });
         return;
-    };
+    }
 
     /*
      * Report software versions
@@ -398,7 +396,7 @@ let Bot = function(client) {
         client.addTextItem(convId, buildConversationItem(itemId, null,
             `App: <b>${packjson.version}</b>, Node: <b>${process.versions.node}</b>, Electron: <b>${process.versions.electron}</b>` +
             `, Chrome: <b>${process.versions.chrome}</b>, v8: <b>${process.versions.v8}</b>`));
-    };
+    }
 
     /*
      * Show bot available commands
@@ -407,14 +405,14 @@ let Bot = function(client) {
         logger.info('[RENDERER] Displaying help...');
         commander.buildHelp(params && params.length && params[0]).then((help) =>
             client.addTextItem(convId, buildConversationItem(itemId, 'HELP', help)));
-    };
+    }
 
     /*
      * Show an error as a conversation item
      */
-    sendErrorItem = function(convId, itemId, err) {
+    function sendErrorItem (convId, itemId, err) {
         client.addTextItem(convId, buildConversationItem(itemId, 'ERROR', err));
-    };
+    }
 
     /**
      * Helper sleep function
@@ -428,7 +426,7 @@ let Bot = function(client) {
     /*
      * Start Circuit Conference
      */
-    startConference = async function(conv, callId) {
+    async function startConference(conv, callId) {
         try {
             let call = await client.findCall(callId);
             if (!call) {
@@ -449,7 +447,7 @@ let Bot = function(client) {
         } catch (err) {
             logger.error(`${err.name}: ${err.message}`);
         }
-    };
+    }
 
     /*
      * Setup Media
@@ -463,28 +461,12 @@ let Bot = function(client) {
                 Vue.nextTick().then(() => {
                     app.setVideoSource(call.remoteVideoStreams[0].stream);
                 });
-                //document.querySelector('video').srcObject = call.remoteVideoStreams[0].stream;
-                //uiElements.videoElement.srcObject = call.remoteVideoStreams[0].stream;
             }
             await sleep(2000);
             sendOpenDoorForm(call.convId);
             //await client.unmute(call.callId);
         }
-    };
-
-    /*
-     * Search Users
-     */
-    async function searchUsers(convId, itemId, searchString, test) {
-        if (!searchString || !searchString.length) {
-            if (test) {
-                logger.error(`[RENDERER] Invalid Syntax`);
-                sendErrorItem(convId, itemId, 'Invalid syntax. Sintax: search searchString');
-            }
-            return;
-        }
-        searchId = client.startUserSearch(searchString);
-    };
+    }
 
     function startTranscription(appCallback) {
         gpioHelper.flashLED();
@@ -508,7 +490,7 @@ let Bot = function(client) {
             gpioHelper.setLED(GpioHelper.STATUS_OFF);
         });
         
-    };
+    }
 
     /*
      * Process Users Search Results
@@ -522,7 +504,7 @@ let Bot = function(client) {
                 resolve(users);
                 return;
             }
-            data.users.forEach(async function(userId, index) {
+            data.users.forEach(async function(userId) {
                 client.getUserById(userId).then((user) => {
                     users.push(user);
                     logger.info(`[RENDERER] User: ${user.firstName} ${user.lastName}`);
@@ -532,7 +514,7 @@ let Bot = function(client) {
                 });
             });
         });
-    };
+    }
 
     function processSearchStatus(data) {
         return new Promise(function(resolve) {
@@ -653,7 +635,7 @@ let Bot = function(client) {
             }
         });
         return;
-    };
+    }
 
     function onSearchStringUpdated(searchString) {
         if (searchId) {
@@ -672,7 +654,7 @@ let Bot = function(client) {
             return;
         }
         app.setPresence(status === GpioHelper.STATUS_ON);
-    };
+    }
 
     function openDoor(convId, itemId) {
         if (!app.currentCall) {
@@ -687,7 +669,7 @@ let Bot = function(client) {
             gpioHelper.setBuzzer(GpioHelper.STATUS_OFF);
             gpioHelper.setLED(GpioHelper.STATUS_OFF);
             }, DOOR_UNLOCK_TIME);
-    };
+    }
 
     function startHygroTermInterval(interval) {
         let update = function() {
@@ -700,7 +682,7 @@ let Bot = function(client) {
             logger.debug('[RENDERER] Update bottom bar');
             update();
         }, interval || UPDATE_HYGROTERMO_INTERVAL);
-    };
+    }
 
     async function sendOpenDoorForm(convId) {
         await client.addTextItem(convId, {
@@ -722,7 +704,7 @@ let Bot = function(client) {
                 }]
             }
         });
-    };
+    }
 };
 
 Circuit.logger.setLevel(Circuit.Enums.LogLevel.Debug);
