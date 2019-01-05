@@ -1,13 +1,14 @@
 # Circuit Kiosk
 
-Circuit Kiosk is a Circuit application that showcases the portability of the Circuit SDK and the unlimited potential of combining inexpensive hardware with a powerful platform to build all kind of communication devices.
-This application allows offices without human receptionits to great visitors and communicate them with people inside the office using video. People inside the office will then be able to unlock the door.
+Circuit Kiosk is a [Circuit](https://www.circuit.com/) application that showcases the portability of the Circuit SDK and the unlimited potential of combining inexpensive hardware with a powerful platform to build all kind of communication devices.
+This application allows offices without human receptionist to greet visitors and communicate them with people inside the office using video. People inside the office will then be able to unlock the door.
+Learn more and join the [Circuit Development Community](https://circuit.github.io/)
 
 ## Things needed
-* A Raspberry PI (I used a RPI 3B+)
+* A Raspberry PI (RPI 3B was used here)
 * A micro SD card (16GB preferred)
-* A 7" touchscreen display (Alternatively a HDMI Monitor and Cable, and Mouse)
-* A USB Keyboard (Only needed for initial setup if touch screen is available)
+* A 7" touch screen display (Alternatively a HDMI Monitor and Cable, and Mouse)
+* A USB Keyboard (Only needed for initial setup)
 * A set of speakers and microhone
 * The Raspberry camera module (A USB Webcam can alternatively be used)
 
@@ -15,13 +16,13 @@ This application allows offices without human receptionits to great visitors and
 
 ### Install Raspbian on the micro SD card
 The easiest way is to flash the micro SD card with the Raspian Stretch with desktop and recommended software.
-The ZIP file can be download from [here](https://www.raspberrypi.org/downloads/raspbian/)
-I used Balena Etcher to flash the micro SD card. You can download Etcher for your OS [here](https://www.balena.io/etcher/)
+The ZIP file can be download from [raspberry.org](https://www.raspberrypi.org/downloads/raspbian/)
+I used Balena Etcher to flash the micro SD card. You can download Etcher for your OS from [balena.io](https://www.balena.io/etcher/)
 
-Alternatively you may installed Raspian using NOOBS following instructions on Raspberry official site [here](https://projects.raspberrypi.org/en/projects/noobs-install)
+Alternatively you may installed Raspian using NOOBS following instructions on [Raspberry official site](https://projects.raspberrypi.org/en/projects/noobs-install)
 
 ### Continue setup...
-Insert the micro SD card into the Raspberry and connect the 7" touchscreen cable. Power them both and follow instructions on the screen. (If you do not have a Raspberry touch screen just use an HDMI monitor, and USB mouse and keyboard).
+Pulg the keyboard to a USB port. Insert the micro SD card into the Raspberry and connect the 7" touch screen cable. Power them both and follow instructions on the screen. (If you do not have a Raspberry touch screen just use an HDMI monitor, and USB mouse).
 Follow instructions to setup the Raspberry and update software.
 
 ### Enable Camera (if RPI camera module will be installed), SSH and optionally VNC
@@ -50,7 +51,7 @@ On your Raspberry console:
 On your Raspberry console:
     
 1.  Find your recording and playback devices  
-  *  Locate your USB microphone in the list of capture hardware devices. Write down the card number and device number.  
+  *  Locate your microphone in the list of capture hardware devices. Write down the card number and device number.  
   
          arecord -l  
 
@@ -115,6 +116,7 @@ We need a later version than the one in the raspian repo. So we will download fr
          tar -xzf node-v11.6.0-linux-armv6l.tar.xz
          cd node-v11.6.0-linux-armv6l
          sudo cp -R * /usr/local
+
 Verify everything is installed OK
 
           node -v
