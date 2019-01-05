@@ -23,7 +23,7 @@ I used Balena Etcher to flash the micro SD card. You can download Etcher for you
 Alternatively you may installed Raspian using NOOBS following instructions on [Raspberry official site](https://projects.raspberrypi.org/en/projects/noobs-install)
 
 ### Continue setup...
-Pulg the keyboard to a USB port. Insert the micro SD card into the Raspberry and connect the 7" touch screen cable. Power them both and follow instructions on the screen. (If you do not have a Raspberry touch screen just use an HDMI monitor, and USB mouse).
+Plug the keyboard to a USB port. Insert the micro SD card into the Raspberry and connect the 7" touch screen cable. Power them both and follow instructions on the screen. (If you do not have a Raspberry touch screen just use an HDMI monitor, and USB mouse).
 Follow instructions to setup the Raspberry and update software.
 
 ### Enable Camera (if RPI camera module will be installed), SSH and optionally VNC
@@ -135,7 +135,7 @@ This C library for Raspberry Pi provides access to GPIO and other IO functions o
          sudo make install
 
 ## Setup the application
-### Clone this repo, install and rebuild for electron
+### Clone this repository, install and rebuild for electron
         git clone https://github.com/wdmartins/circuitKiosk.git
         npm install
 
@@ -172,9 +172,9 @@ to setup an account, billing and get your application credentials. Then set the 
 
 Components needed:
 
-* 10 Kohms Resistor (R3)
-* 1 Kohms Resistor (R1)
-* 220 ohms Resistor (R2)
+* 10 KΩ Resistor (R3)
+* 1 KΩ Resistor (R1)
+* 220 Ω Resistor (R2)
 * NPN Transistor S8050
 * LED
 * Infrared Motion Sensonr HC SR501
@@ -186,8 +186,9 @@ Components needed:
 Disclaimer: An incorrect connection or a defective component may damage your Raspberry PI so always double check connections and components. If using a different sensor, or transistor always check the data sheet and adapt circuit accordingly.
 
 ## Start the application
+Open a terminal:
 
-    npm run dev  // Run in development more. Opens up Chrome Console
+    npm run dev  // Run in development mode. Opens up Chrome Console
     npm start // Starts the application is regular sized window
-    npm run kiosk // Starts the application in kiosk more. 
+    npm run kiosk // Starts the application in kiosk mode. 
 
