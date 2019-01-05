@@ -4,12 +4,12 @@ Circuit Kiosk is a [Circuit](https://www.circuit.com/) application that showcase
 This application allows offices without human receptionist to greet visitors and communicate them with people inside the office using video. People inside the office will then be able to unlock the door.
 Learn more and join the [Circuit Development Community](https://circuit.github.io/)
 
-## Things needed
+## What you will need (Electronic circuit components are listed in another section below)
 * A Raspberry PI (RPI 3B was used here)
 * A micro SD card (16GB preferred)
 * A 7" touch screen display (Alternatively a HDMI Monitor and Cable, and Mouse)
 * A USB Keyboard (Only needed for initial setup)
-* A set of speakers and microhone
+* A set of speakers and a microphone
 * The Raspberry camera module (A USB Webcam can alternatively be used)
 
 ## Setting up your Raspberry PI
