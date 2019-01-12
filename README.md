@@ -34,7 +34,7 @@ Now you can SSH from your own computer to the RPI.
 Now enable the camera module to work with getUserMedia
  
     echo 'options bcm2835-v4l2 gst_v4l2src_is_broken=1' | sudo tee -a /etc/modprobe.d/bcm2835-v4l2.conf
-	  echo 'bcm2835-v4l2' | sudo tee -a /etc/modules-load.d/modules.conf
+    echo 'bcm2835-v4l2' | sudo tee -a /etc/modules-load.d/modules.conf
 
 ### Get the latest updates
 
