@@ -202,3 +202,7 @@ To start the application in kiosk mode the following to a ssh file, and execute 
 
 ### Video Demostration
 https://youtu.be/6hbeP-hpG6k
+
+### Medium Article
+https://medium.com/@wdmartins/building-a-circuit-communication-device-using-raspberry-pi-716a30bc60a7
+
