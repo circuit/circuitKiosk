@@ -195,5 +195,10 @@ Open a terminal:
 
     npm run dev  // Run in development mode. Opens up Chrome Console
     npm start // Starts the application is regular sized window
+
+To start the application in kiosk mode the following to a ssh file, and execute it.
+
     npm run kiosk // Starts the application in kiosk mode. 
 
+### Video Demostration
+https://youtu.be/6hbeP-hpG6k
