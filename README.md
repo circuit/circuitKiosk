@@ -148,6 +148,8 @@ This C library for Raspberry Pi provides access to GPIO and other IO functions o
     ./node_modules/.bin/electron-rebuild .
 This may take a long time the first time.
 
+Note: If rgcp fails to compile, install gcc/g++ version 7.
+
 ### [Register an account](https://www.circuit.com/web/developers/registration) on circuitsandbox.net
   
 ###  [Register a bot](https://circuit.github.io/oauth) on the sandbox (OAuth 2.0 Client Credentials)
@@ -167,11 +169,6 @@ to setup an account, billing and get your application credentials. Then set the 
     
     sudo apt-get install sox libsox-fmt-all
 
-
-### (Optional) Enhance the camera modules picture quality.
- 
-    $ echo 'options bcm2835-v4l2 gst_v4l2src_is_broken=1' | sudo tee -a /etc/modprobe.d/bcm2835-v4l2.conf
-	$ echo 'bcm2835-v4l2' | sudo tee -a /etc/modules-load.d/modules.conf
 
 ## Build the electronic circuit
 
