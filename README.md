@@ -148,7 +148,7 @@ This C library for Raspberry Pi provides access to GPIO and other IO functions o
     ./node_modules/.bin/electron-rebuild .
 This may take a long time the first time.
 
-Note: If rgcp fails to compile, install gcc/g++ version 7.
+Note: If rgcp fails to compile, install gcc/g++ version 7. Check http://lektiondestages.blogspot.com/2013/05/installing-and-switching-gccg-versions.html to see how to have alternative versions of the compiler.
 
 ### [Register an account](https://www.circuit.com/web/developers/registration) on circuitsandbox.net
   
