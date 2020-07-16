@@ -22,8 +22,10 @@ function createWindow() {
     logger.info(`[ELECTRON] Create Window`);
     // Create the browser window.
     win = new BrowserWindow({
-        kiosk: kiosk
-        //height: 480
+        kiosk: kiosk,
+        webPreferences: {
+            nodeIntegration: true
+        }
     });
 
     // and load the index.html of the app.
