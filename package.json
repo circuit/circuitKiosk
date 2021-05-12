@@ -28,7 +28,7 @@
     "extend": "^3.0.2",
     "file-api": "^0.10.4",
     "gpio-mock": "^1.2.0",
-    "grpc": "^1.24.3",
+    "grpc": "^1.24.9",
     "node-abi": "^2.18.0",
     "node-dht-sensor": "^0.4.2",
     "node-ipc": "^9.1.1",
